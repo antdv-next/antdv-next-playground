@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Build
+dist
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Cache
+.cache
+.eslintcache
+
+# Claude
+CLAUDE.md
+.claude

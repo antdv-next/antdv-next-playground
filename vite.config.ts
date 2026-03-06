@@ -1,0 +1,109 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import vue from '@vitejs/plugin-vue'
+import replPkg from '@vue/repl/package.json' with { type: 'json' }
+import Unocss from 'unocss/vite'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { defineConfig } from 'vite'
+import Inspect from 'vite-plugin-inspect'
+import Mkcert from 'vite-plugin-mkcert'
+import pkg from './package.json' with { type: 'json' }
+
+const pathSrc = path.resolve(__dirname, 'src')
+
+export default defineConfig({
+  resolve: {
+    alias: {
+      '@': pathSrc,
+    },
+  },
+  define: {
+    'import.meta.env.APP_VERSION': JSON.stringify(pkg.version),
+    'import.meta.env.REPL_VERSION': JSON.stringify(replPkg.version),
+  },
+  build: {
+    rollupOptions: {
+      external: ['typescript'],
+    },
+  },
+  server: {
+    host: true,
+  },
+  plugins: [
+    {
+      name: 'vue.worker',
+      transform(code, id) {
+        if (id.includes('vue.worker')) {
+          return {
+            code: patchVueWorker(code),
+            map: null,
+          }
+        }
+      },
+      generateBundle(_, bundle) {
+        for (const [fileName, file] of Object.entries(bundle)) {
+          if (fileName.includes('vue.worker')) {
+            // @ts-ignore
+            file.source = patchVueWorker(file.source.toString())
+            break
+          }
+        }
+      },
+    },
+    vue({
+      script: {
+        defineModel: true,
+        propsDestructure: true,
+        fs: {
+          fileExists: fs.existsSync,
+          readFile: (file) => fs.readFileSync(file, 'utf8'),
+        },
+      },
+    }),
+    AutoImport({
+      dirs: [path.resolve(pathSrc, 'composables')],
+      imports: ['vue', '@vueuse/core'],
+      dts: path.resolve(pathSrc, 'auto-imports.d.ts'),
+    }),
+    Components({
+      dirs: [path.resolve(pathSrc, 'components')],
+      dts: path.resolve(pathSrc, 'components.d.ts'),
+    }),
+    Unocss(),
+    Mkcert(),
+    Inspect(),
+  ],
+  optimizeDeps: {
+    exclude: ['@vue/repl'],
+  },
+})
+
+function patchVueWorker(code: string) {
+  return String.raw`${code}
+    ;(function() {
+      var _bc = new BroadcastChannel('vue-repl-dts')
+      var _fetch = self.fetch
+      var _pending = 0
+      var pr = new URL(location.href).searchParams.get('pr')
+
+      self.fetch = function() {
+        var args = [].slice.call(arguments)
+        var url = typeof args[0] === 'string' ? args[0] : ''
+
+        if (pr && /https:\/\/cdn\.jsdelivr\.net\/npm\/antdv-next(@[^/]+)?\//.test(url)) {
+          args[0] = url.replace(/https:\/\/cdn\.jsdelivr\.net\/npm\/antdv-next(@[^/]+)?/, 'https://raw.esm.sh/pr/antdv-next@' + pr)
+        }
+
+        if (url.endsWith('.d.ts') || url.includes('data.jsdelivr.com')) {
+          _pending++
+          _bc.postMessage({ pending: _pending })
+          return _fetch.apply(self, args).finally(function() {
+            _pending--
+            _bc.postMessage({ pending: _pending })
+          })
+        }
+        return _fetch.apply(self, args)
+      }
+    })()`
+}
