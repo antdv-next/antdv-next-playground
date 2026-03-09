@@ -63,6 +63,10 @@ export const genImportMap = ({
       version: antdvNext,
       path: '/',
     },
+    '@antdv-next/icons': {
+      version: 'latest',
+      path: '/dist/antd-icons.esm.js',
+    },
   }
 
   const extraPackages = getExtraPackages()
