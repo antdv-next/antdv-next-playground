@@ -10,7 +10,7 @@ Online playground for [antdv-next](https://github.com/antdv-next/antdv-next), po
 
 ## Usage
 
-Go to [antdv-next-playground]() to have a try!
+Go to [antdv-next-playground](https://play.antdv-next.com) to have a try!
 
 ## Development
 
