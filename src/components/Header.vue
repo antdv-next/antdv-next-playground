@@ -142,15 +142,17 @@ function resetFiles() {
               :key="dtsStatus"
               :color="dtsStatus === 'ready' ? 'success' : 'processing'"
             >
-              <span
-                v-if="dtsStatus !== 'ready'"
-                i-ri-loader-4-line
-                mr-1
-                inline-block
-                animate-spin
-              />
-              <span v-else i-ri-check-line mr-1 inline-block />
-              {{ dtsLabels[dtsStatus!] }}
+              <div>
+                <span
+                  v-if="dtsStatus !== 'ready'"
+                  i-ri-loader-4-line
+                  mr-1
+                  inline-block
+                  animate-spin
+                />
+                <span v-else i-ri-check-line mr-1 inline-block />
+                {{ dtsLabels[dtsStatus!] }}
+              </div>
             </a-tag>
           </Transition>
         </div>
