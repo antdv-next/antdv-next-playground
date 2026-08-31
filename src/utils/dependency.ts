@@ -120,6 +120,30 @@ export const genImportMap = ({
         x,
         '/es/antdv-next-x.esm.js',
       ),
+      // x 生态子包(独立发版,版本固定当前 latest)
+      '@antdv-next/x-markdown': genCdnLink(
+        '@antdv-next/x-markdown',
+        '0.1.4',
+        '/dist/index.js',
+      ),
+      '@antdv-next/x-markdown/plugins/Latex': genCdnLink(
+        '@antdv-next/x-markdown',
+        '0.1.4',
+        '/plugins/Latex/index.js',
+      ),
+      '@antdv-next/x-card': genCdnLink(
+        '@antdv-next/x-card',
+        '0.0.1',
+        '/dist/index.js',
+      ),
+      // x-markdown 的外部依赖(external 未打包,需 import map 解析)
+      dompurify:
+        'https://cdn.jsdelivr.net/npm/dompurify@3.1.0/dist/purify.es.mjs',
+      marked: 'https://cdn.jsdelivr.net/npm/marked@12.0.0/+esm',
+      katex: 'https://cdn.jsdelivr.net/npm/katex@0.16.25/+esm',
+      // Latex 插件的裸 css import:浏览器无法 ESM 加载 css,
+      // 映射为空模块占位,katex 样式由用户按需引入(如 <link> 或 index.html)
+      'katex/dist/katex.min.css': 'data:text/javascript,export default {}',
     })
   }
 
