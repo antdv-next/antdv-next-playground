@@ -4,8 +4,10 @@ import { message } from 'antdv-next'
 import { useTypeLoadingState } from '@/composables/use-type-loading-state'
 import {
   getSupportedAntdvVersions,
+  getSupportedProVersions,
   getSupportedTSVersions,
   getSupportedVueVersions,
+  getSupportedXVersions,
 } from '@/utils/dependency'
 import type { Store, VersionKey } from '@/composables/store'
 import type { Ref } from 'vue'
@@ -93,6 +95,18 @@ const versions = reactive<Record<VersionKey, Version>>({
     text: 'TypeScript',
     published: getSupportedTSVersions(),
     active: store.versions.typescript,
+  },
+  pro: {
+    text: 'Pro',
+    published: getSupportedProVersions(),
+    active: store.versions.pro,
+    hint: 'Requires Antdv Next >= 1.3.0',
+  },
+  x: {
+    text: 'X',
+    published: getSupportedXVersions(),
+    active: store.versions.x,
+    hint: 'Requires Antdv Next >= 1.0.0',
   },
 })
 

@@ -1,4 +1,5 @@
 import { gte } from 'semver'
+import { STATIC_IMPORTS } from './static-imports'
 import type { Versions } from '@/composables/store'
 import type { ImportMap } from '@vue/repl'
 import type { MaybeRef } from '@vueuse/core'
@@ -41,56 +42,100 @@ export const getExtraPackages = () => {
   return new URLSearchParams(location.search).get('extra_packages')
 }
 
+/**
+ * 生成 REPL 沙箱的 import map。
+ *
+ * antdv-next 生态全部走 jsdelivr 原始未打包 dist（不经 esm.sh / +esm 二次打包），
+ * 并统一经 import map 解析 `vue`，保证沙箱内只有一个 vue 实例、antdv-next 的
+ * config-provider / theme 模块只有一个 Symbol——主题与配置在用户代码、pro、
+ * x 组件之间完全共享（见 static-imports.ts 的枚举说明）。
+ *
+ * 已知限制：
+ * - antdv-next 的依赖版本（@v-c/* 等）按 antdv-next@1.5.3 锁定；切换其他
+ *   antdvNext 版本时依赖版本不随动，个别 API 可能不兼容。
+ * - antdv-next 仅显式列出常用子路径；未列出的子路径导入（如
+ *   `antdv-next/theme`）不支持。
+ */
 export const genImportMap = ({
   vue,
   antdvNext,
+  pro,
+  x,
 }: Partial<Versions> = {}): ImportMap => {
-  const deps: Record<string, Dependency> = {
-    vue: {
-      pkg: '@vue/runtime-dom',
-      version: vue,
-      path: '/dist/runtime-dom.esm-browser.js',
-    },
-    '@vue/shared': {
-      version: vue,
-      path: '/dist/shared.esm-bundler.js',
-    },
-    'antdv-next': {
-      version: antdvNext,
-      path: '/dist/antd.esm.js',
-    },
-    'antdv-next/': {
-      version: antdvNext,
-      path: '/',
-    },
-    '@antdv-next/icons': {
-      version: 'latest',
-      path: '/dist/antd-icons.esm.js',
-    },
+  const imports: Record<string, string> = {
+    vue: genCdnLink(
+      '@vue/runtime-dom',
+      vue,
+      '/dist/runtime-dom.esm-browser.js',
+    ),
+    '@vue/shared': genCdnLink(
+      '@vue/shared',
+      vue,
+      '/dist/shared.esm-bundler.js',
+    ),
+    'antdv-next': genCdnLink('antdv-next', antdvNext, '/dist/index.js'),
+    'antdv-next/config-provider': genCdnLink(
+      'antdv-next',
+      antdvNext,
+      '/dist/config-provider/index.js',
+    ),
+    'antdv-next/config-provider/context': genCdnLink(
+      'antdv-next',
+      antdvNext,
+      '/dist/config-provider/context.js',
+    ),
+    'antdv-next/config-provider/hooks/useCSSVarCls': genCdnLink(
+      'antdv-next',
+      antdvNext,
+      '/dist/config-provider/hooks/useCSSVarCls.js',
+    ),
+    'antdv-next/theme/internal': genCdnLink(
+      'antdv-next',
+      antdvNext,
+      '/dist/theme/internal.js',
+    ),
+    'antdv-next/global.d.ts': genCdnLink(
+      'antdv-next',
+      antdvNext,
+      '/global.d.ts',
+    ),
+    ...STATIC_IMPORTS,
+  }
+
+  if (pro) {
+    Object.assign(imports, {
+      '@antdv-next/pro': genCdnLink('@antdv-next/pro', pro, '/dist/index.js'),
+      '@antdv-next/pro/scrollbar': genCdnLink(
+        '@antdv-next/pro',
+        pro,
+        '/dist/scrollbar/index.js',
+      ),
+    })
+  }
+  if (x) {
+    // x 的 browser 单文件 bundle(内部仅依赖 vue,经 import map 与 antdv-next 共享)
+    Object.assign(imports, {
+      '@antdv-next/x': genCdnLink(
+        '@antdv-next/x',
+        x,
+        '/es/antdv-next-x.esm.js',
+      ),
+    })
   }
 
   const extraPackages = getExtraPackages()
   if (extraPackages === '@vueuse/core') {
-    Object.assign(deps, {
-      '@vueuse/core': {
-        version: 'latest',
-        path: '/dist/index.js',
-      },
-      '@vueuse/shared': {
-        version: 'latest',
-        path: '/dist/index.js',
-      },
+    Object.assign(imports, {
+      '@vueuse/core': genCdnLink('@vueuse/core', 'latest', '/dist/index.js'),
+      '@vueuse/shared': genCdnLink(
+        '@vueuse/shared',
+        'latest',
+        '/dist/index.js',
+      ),
     })
   }
 
-  return {
-    imports: Object.fromEntries(
-      Object.entries(deps).map(([key, dep]) => [
-        key,
-        genCdnLink(dep.pkg ?? key, dep.version, dep.path),
-      ]),
-    ),
-  }
+  return { imports }
 }
 
 export const getVersions = (pkg: MaybeRef<string>) => {
@@ -126,4 +171,17 @@ export const getSupportedAntdvVersions = () => {
     // 1.0.0 ~ 1.0.3 没有 dist/antd.esm.js（早期打包结构不同）
     versions.value.filter((version) => gte(version, '1.0.4')),
   )
+}
+
+export const getSupportedProVersions = () => {
+  const versions = getVersions('@antdv-next/pro')
+  return computed(() =>
+    // pro 需要 antdv-next >= 1.3.0，只有正式版本可用
+    versions.value.filter((version) => !version.includes('-')),
+  )
+}
+
+export const getSupportedXVersions = () => {
+  const versions = getVersions('@antdv-next/x')
+  return computed(() => versions.value)
 }

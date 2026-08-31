@@ -23,7 +23,7 @@ export interface Initial {
   serializedState?: string
   initialized?: () => void
 }
-export type VersionKey = 'vue' | 'antdvNext' | 'typescript'
+export type VersionKey = 'vue' | 'antdvNext' | 'typescript' | 'pro' | 'x'
 export type Versions = Record<VersionKey, string>
 export interface UserOptions {
   styleSource?: string
@@ -31,6 +31,8 @@ export interface UserOptions {
   vueVersion?: string
   tsVersion?: string
   antdvVersion?: string
+  proVersion?: string
+  xVersion?: string
   vuePr?: string
 }
 export type SerializeState = Record<string, string> & {
@@ -60,6 +62,8 @@ export const useStore = (initial: Initial) => {
     vue: saved?._o?.vueVersion ?? 'latest',
     antdvNext: pr ? 'preview' : (saved?._o?.antdvVersion ?? 'latest'),
     typescript: saved?._o?.tsVersion ?? 'latest',
+    pro: saved?._o?.proVersion ?? 'latest',
+    x: saved?._o?.xVersion ?? 'latest',
   })
   const userOptions: UserOptions = {}
   if (pr) {
@@ -77,12 +81,19 @@ export const useStore = (initial: Initial) => {
     vueVersion: saved?._o?.vueVersion,
     tsVersion: saved?._o?.tsVersion,
     antdvVersion: saved?._o?.antdvVersion,
+    proVersion: saved?._o?.proVersion,
+    xVersion: saved?._o?.xVersion,
   })
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
   const builtinImportMap = computed<ImportMap>(() => {
-    let importMap = genImportMap(versions)
+    // PR 预览模式下 antdv-next 来自 PR 构建，pro/x 的 ?deps= 无法解析 preview 版本，禁用
+    let importMap = genImportMap({
+      ...versions,
+      pro: pr ? undefined : versions.pro,
+      x: pr ? undefined : versions.x,
+    })
     if (pr)
       importMap = mergeImportMap(importMap, {
         imports: {
@@ -229,6 +240,14 @@ export const useStore = (initial: Initial) => {
       case 'antdvNext':
         versions.antdvNext = version
         userOptions.antdvVersion = version
+        break
+      case 'pro':
+        versions.pro = version
+        userOptions.proVersion = version
+        break
+      case 'x':
+        versions.x = version
+        userOptions.xVersion = version
         break
       case 'typescript':
         store.typescriptVersion = version
