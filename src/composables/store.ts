@@ -33,6 +33,8 @@ export interface UserOptions {
   antdvVersion?: string
   proVersion?: string
   xVersion?: string
+  proEnabled?: boolean
+  xEnabled?: boolean
   vuePr?: string
 }
 export type SerializeState = Record<string, string> & {
@@ -83,7 +85,30 @@ export const useStore = (initial: Initial) => {
     antdvVersion: saved?._o?.antdvVersion,
     proVersion: saved?._o?.proVersion,
     xVersion: saved?._o?.xVersion,
+    proEnabled: saved?._o?.proEnabled,
+    xEnabled: saved?._o?.xEnabled,
   })
+  // 是否把 pro / x 依赖写入 import map。
+  // 默认关闭;可通过 URL 参数 ?pro=1 / ?x=1 开启(docs 页链接玩法);
+  // 用户显式切换后由 _o.proEnabled / _o.xEnabled 记录,优先于参数。
+  const queryParams = new URLSearchParams(location.search)
+  const paramFlag = (name: string, fallback: boolean) => {
+    const raw = queryParams.get(name)
+    if (raw === null) return fallback
+    return !['0', 'false', 'no', 'off'].includes(raw.toLowerCase())
+  }
+  const featureFlags = reactive({
+    pro: saved?._o?.proEnabled ?? paramFlag('pro', false),
+    x: saved?._o?.xEnabled ?? paramFlag('x', false),
+  })
+  watch(
+    () => featureFlags.pro,
+    (v) => (userOptions.proEnabled = v),
+  )
+  watch(
+    () => featureFlags.x,
+    (v) => (userOptions.xEnabled = v),
+  )
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
@@ -91,8 +116,8 @@ export const useStore = (initial: Initial) => {
     // PR 预览模式下 antdv-next 来自 PR 构建，pro/x 的 ?deps= 无法解析 preview 版本，禁用
     let importMap = genImportMap({
       ...versions,
-      pro: pr ? undefined : versions.pro,
-      x: pr ? undefined : versions.x,
+      pro: pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+      x: pr ? undefined : featureFlags.x ? versions.x : undefined,
     })
     if (pr)
       importMap = mergeImportMap(importMap, {
@@ -138,21 +163,36 @@ export const useStore = (initial: Initial) => {
   })
 
   watch(
-    () => versions.antdvNext,
-    (version) => {
+    () => [versions.antdvNext, versions.x, featureFlags.x],
+    () => {
       store.files[ANTDV_NEXT_FILE].code = generateAntdvNextCode(
-        version,
+        versions.antdvNext,
         userOptions.styleSource,
+        pr ? undefined : featureFlags.x ? versions.x : undefined,
       ).trim()
       originalCompileFile(store, store.files[ANTDV_NEXT_FILE]).then(
         (errs) => (store.errors = errs),
       )
     },
   )
+  // 记录生效中的 builtin map;首次变更即可对比移除消失的托管键
+  let prevBuiltinImportMap: ImportMap = builtinImportMap.value
   watch(
     builtinImportMap,
     (newBuiltinImportMap) => {
       const importMap = JSON.parse(store.files[IMPORT_MAP].code)
+      // 关闭 pro / x(或 CDN 切换使某键消失)时,移除已从 builtin 消失的托管键,
+      // 避免 import map 残留旧条目仍被沙箱解析
+      if (prevBuiltinImportMap) {
+        const prevImports = prevBuiltinImportMap.imports ?? {}
+        const newImports = newBuiltinImportMap.imports ?? {}
+        for (const key of Object.keys(prevImports)) {
+          if (!(key in newImports)) {
+            delete importMap.imports?.[key]
+          }
+        }
+      }
+      prevBuiltinImportMap = newBuiltinImportMap
       store.files[IMPORT_MAP].code = JSON.stringify(
         mergeImportMap(importMap, newBuiltinImportMap),
         undefined,
@@ -217,7 +257,11 @@ export const useStore = (initial: Initial) => {
     if (!files[ANTDV_NEXT_FILE]) {
       files[ANTDV_NEXT_FILE] = new File(
         ANTDV_NEXT_FILE,
-        generateAntdvNextCode(versions.antdvNext, userOptions.styleSource),
+        generateAntdvNextCode(
+          versions.antdvNext,
+          userOptions.styleSource,
+          pr ? undefined : featureFlags.x ? versions.x : undefined,
+        ),
       )
     }
     if (!files[TSCONFIG]) {
@@ -267,6 +311,9 @@ export const useStore = (initial: Initial) => {
     addFile(appFile)
   }
 
+  const setFeature = (key: keyof typeof featureFlags, enabled: boolean) => {
+    featureFlags[key] = enabled
+  }
   const utils = {
     versions,
     pr,
@@ -275,20 +322,31 @@ export const useStore = (initial: Initial) => {
     init,
     vuePr,
     resetFiles,
+    featureFlags,
+    setFeature,
   }
   Object.assign(store, utils)
 
   return store as typeof store & typeof utils
 }
 
-function generateAntdvNextCode(version: string, styleSource?: string) {
+function generateAntdvNextCode(
+  version: string,
+  styleSource?: string,
+  xVersion?: string,
+) {
   const style = styleSource
     ? styleSource.replace('#VERSION#', version)
     : genCdnLink('antdv-next', version, '/dist/antd.css')
   const resetStyle = genCdnLink('antdv-next', version, '/dist/reset.css')
+  // X 开启时全局注册,沙箱内可直接用文档同款 <ax-welcome> 等组件(组件 name 为 Ax*)
+  const xImport = xVersion ? `import AntdvX from '@antdv-next/x'` : ''
+  const xSetup = xVersion ? `  instance.appContext.app.use(AntdvX)` : ''
   return antdvNextCode
     .replace('#STYLE#', style)
     .replace('#RESETSTYLE#', resetStyle)
+    .replace('#X_IMPORT#', xImport)
+    .replace('#X_SETUP#', xSetup)
 }
 
 function useWorker(pr: string) {

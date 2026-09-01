@@ -2,15 +2,7 @@
 import { languageToolsVersion } from '@vue/repl'
 import { message } from 'antdv-next'
 import { useTypeLoadingState } from '@/composables/use-type-loading-state'
-import {
-  getSupportedAntdvVersions,
-  getSupportedProVersions,
-  getSupportedTSVersions,
-  getSupportedVueVersions,
-  getSupportedXVersions,
-} from '@/utils/dependency'
-import type { Store, VersionKey } from '@/composables/store'
-import type { Ref } from 'vue'
+import type { Store } from '@/composables/store'
 
 const appVersion = import.meta.env.APP_VERSION
 const replVersion = import.meta.env.REPL_VERSION
@@ -27,6 +19,7 @@ const emit = defineEmits<{
   (e: 'toggleConsole'): void
 }>()
 const showReset = ref(false)
+const settingsOpen = ref(false)
 const dark = useDark()
 
 function toggleDark(event?: MouseEvent) {
@@ -71,50 +64,6 @@ const { store } = defineProps<{
   store: Store
   showConsole: boolean
 }>()
-
-interface Version {
-  text: string
-  published: Ref<string[]>
-  active: string
-  hint?: string
-}
-
-const versions = reactive<Record<VersionKey, Version>>({
-  antdvNext: {
-    text: 'Antdv Next',
-    published: getSupportedAntdvVersions(),
-    active: store.versions.antdvNext,
-  },
-  vue: {
-    text: 'Vue',
-    published: getSupportedVueVersions(),
-    active: store.versions.vue,
-    hint: 'Antdv Next requires Vue >= 3.5.0',
-  },
-  typescript: {
-    text: 'TypeScript',
-    published: getSupportedTSVersions(),
-    active: store.versions.typescript,
-  },
-  pro: {
-    text: 'Pro',
-    published: getSupportedProVersions(),
-    active: store.versions.pro,
-    hint: 'Requires Antdv Next >= 1.3.0',
-  },
-  x: {
-    text: 'X',
-    published: getSupportedXVersions(),
-    active: store.versions.x,
-    hint: 'Requires Antdv Next >= 1.0.0',
-  },
-})
-
-async function setVersion(key: VersionKey, v: string) {
-  versions[key].active = `loading...`
-  await store.setVersion(key, v)
-  versions[key].active = v
-}
 
 async function copyLink() {
   await navigator.clipboard.writeText(location.href)
@@ -190,42 +139,6 @@ function resetFiles() {
     </div>
 
     <div flex="~ gap-2" items-center>
-      <div
-        v-for="(v, key) of versions"
-        :key="key"
-        flex="~ gap-2"
-        items-center
-        lt-lg-hidden
-      >
-        <span flex items-center
-          >{{ v.text }}:<a-tooltip
-            v-if="v.hint"
-            :title="v.hint"
-            placement="bottom"
-            ><span
-              i-ri-information-line
-              ml-1
-              inline-block
-              h-14px
-              w-14px
-              cursor-help
-              op-50 /></a-tooltip
-        ></span>
-        <a-select
-          :value="v.active"
-          show-search
-          size="small"
-          style="width: 140px"
-          :options="
-            v.published.map((ver: string) => ({ label: ver, value: ver }))
-          "
-          :get-popup-container="
-            (trigger: HTMLElement) => trigger.parentElement!
-          "
-          @change="setVersion(key, $event as string)"
-        />
-      </div>
-
       <div flex="~ gap-4" text-lg>
         <a-popover v-model:open="showReset" trigger="click">
           <template #content>
@@ -271,21 +184,16 @@ function resetFiles() {
           <button title="View on GitHub" i-ri-github-fill />
         </a>
 
-        <a-popover
-          trigger="click"
-          placement="bottomRight"
-          :get-popup-container="
-            (trigger: HTMLElement) => trigger.parentElement!
-          "
-        >
-          <template #content>
-            <Settings />
-          </template>
-          <button i-ri:settings-line title="cdn" hover:color-primary />
-        </a-popover>
+        <button
+          i-ri:settings-line
+          title="Settings"
+          hover:color-primary
+          @click="settingsOpen = true"
+        />
       </div>
     </div>
   </nav>
+  <SettingsDialog v-model:open="settingsOpen" :store="store" />
 </template>
 
 <style lang="scss">
@@ -301,10 +209,6 @@ nav {
   background-color: var(--bg);
   color: var(--text);
   box-shadow: 0 0 6px #1677ff;
-
-  .ant-select {
-    width: 140px;
-  }
 }
 
 .dark nav {

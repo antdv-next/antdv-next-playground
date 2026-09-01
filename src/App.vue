@@ -135,7 +135,8 @@ watchEffect(() => {
   history.replaceState(
     {},
     '',
-    `${location.origin}${location.pathname}#${serialized}`,
+    // 保留 query(?pro=1 / ?x=1 等),否则参数在首次序列化后丢失,刷新即失效
+    `${location.origin}${location.pathname}${location.search}#${serialized}`,
   )
   clearLogs()
 })

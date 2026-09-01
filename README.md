@@ -33,6 +33,17 @@ Uncaught SyntaxError: The requested module 'vue' does not provide an export name
 
 > antdv-next itself does not directly use this API — it is introduced by an indirect dependency. If the upstream removes this dependency, the version restriction can be relaxed.
 
+### URL Parameters (Pro / X)
+
+Pro and X are **off by default** — their dependencies are not imported into the sandbox. Enable them via the Settings dialog, or via URL parameters so docs/demo pages can deep-link:
+
+- `?pro=1` — enable Pro (`@antdv-next/pro`)
+- `?x=1` — enable X (`@antdv-next/x`)
+- `?pro=1&x=1` — enable both
+- `0` / `false` / `no` / `off` explicitly disable (e.g. `?x=0`)
+
+The parameters are preserved across reloads. Once a feature is toggled in the UI, the choice is saved into the shareable URL and takes precedence over the parameter.
+
 ### Antdv Next >= 1.0.4
 
 The antdv-next version selector is restricted to **>= 1.0.4**.

@@ -1,4 +1,5 @@
 import Antd from 'antdv-next'
+#X_IMPORT#
 import { getCurrentInstance } from 'vue'
 
 let installed = false
@@ -8,6 +9,7 @@ export function setupAntdvNext() {
   if (installed) return
   const instance = getCurrentInstance()
   instance.appContext.app.use(Antd)
+#X_SETUP#
   installed = true
 }
 

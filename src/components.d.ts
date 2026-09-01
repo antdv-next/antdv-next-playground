@@ -10,6 +10,6 @@ declare module 'vue' {
   export interface GlobalComponents {
     ConsolePanel: typeof import('./components/ConsolePanel.vue')['default']
     Header: typeof import('./components/Header.vue')['default']
-    Settings: typeof import('./components/Settings.vue')['default']
+    SettingsDialog: typeof import('./components/SettingsDialog.vue')['default']
   }
 }

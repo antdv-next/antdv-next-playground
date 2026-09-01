@@ -152,12 +152,17 @@ export const genImportMap = ({
     })
   }
   if (x) {
-    // x 的 browser 单文件 bundle(内部仅依赖 vue,经 import map 与 antdv-next 共享)
+    // x 改用 dist 模块构建:内部以裸导入引用 antdv-next / @antdv-next/cssinjs 等,
+    // 全部经 import map 与用户代码共享同一实例——config-provider 的主题(dark 模式/
+    // 主色)在 x 组件上同样生效。es/antdv-next-x.esm.js 是内置 antdv-next 的单文件
+    // bundle,其 config-provider context 与外部不共享,主题不会联动,故不再使用。
     Object.assign(imports, {
-      '@antdv-next/x': genCdnLink(
-        '@antdv-next/x',
-        x,
-        '/es/antdv-next-x.esm.js',
+      '@antdv-next/x': genCdnLink('@antdv-next/x', x, '/dist/index.js'),
+      // x 的 theme/useToken 直接复用 antdv-next 内部模块(同源共享 context)
+      'antdv-next/dist/theme/useToken': genCdnLink(
+        'antdv-next',
+        antdvNext,
+        '/dist/theme/useToken.js',
       ),
       // x 生态子包(独立发版,版本固定当前 latest)
       '@antdv-next/x-markdown': genCdnLink(
@@ -182,6 +187,61 @@ export const genImportMap = ({
       // Latex 插件的裸 css import:浏览器无法 ESM 加载 css,
       // 映射为空模块占位,katex 样式由用户按需引入(如 <link> 或 index.html)
       'katex/dist/katex.min.css': 'data:text/javascript,export default {}',
+      // mermaid(XMermaid 懒加载):esm.sh 构建,整个依赖树(roughjs/cytoscape/
+      // dagre-d3-es 等)重写为自包含 URL,无需逐个映射
+      'mermaid/dist/': 'https://esm.sh/mermaid@11.12.1/dist/',
+      // prosemirror(XSender 富文本):esm.sh 构建,依赖树自包含
+      'prosemirror-model': 'https://esm.sh/prosemirror-model@1.25.11',
+      'prosemirror-state': 'https://esm.sh/prosemirror-state@1.4.4',
+      'prosemirror-view': 'https://esm.sh/prosemirror-view@1.42.3',
+      'prosemirror-commands': 'https://esm.sh/prosemirror-commands@1.7.2',
+      'prosemirror-history': 'https://esm.sh/prosemirror-history@1.5.0',
+      'prosemirror-keymap': 'https://esm.sh/prosemirror-keymap@1.2.3',
+      // shiki(XCodeHighlighter):core/引擎走 esm.sh(依赖树自包含);
+      // 主题与内置语言是纯数据文件,直指 @shikijs 包内产物(随 cdn 设置切换)
+      'shiki/core': 'https://esm.sh/shiki@3.13.0/core',
+      'shiki/engine/javascript':
+        'https://esm.sh/shiki@3.13.0/engine/javascript',
+      'shiki/dist/themes/vitesse-dark.mjs': genCdnLink(
+        '@shikijs/themes',
+        '3.13.0',
+        '/dist/vitesse-dark.mjs',
+      ),
+      'shiki/dist/themes/vitesse-light.mjs': genCdnLink(
+        '@shikijs/themes',
+        '3.13.0',
+        '/dist/vitesse-light.mjs',
+      ),
+      'shiki/dist/langs/typescript.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/typescript.mjs',
+      ),
+      'shiki/dist/langs/javascript.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/javascript.mjs',
+      ),
+      'shiki/dist/langs/python.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/python.mjs',
+      ),
+      'shiki/dist/langs/json.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/json.mjs',
+      ),
+      'shiki/dist/langs/html.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/html.mjs',
+      ),
+      'shiki/dist/langs/css.mjs': genCdnLink(
+        '@shikijs/langs',
+        '3.13.0',
+        '/dist/css.mjs',
+      ),
     })
   }
 
