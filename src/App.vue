@@ -25,6 +25,10 @@ const autoSave = ref(getAutoSaveState())
 const previewOptions = {
   showRuntimeError: false,
   headHTML: `
+    <script>
+      // CDN 原始 ESM 产物(bundler-target)引用 process.env.NODE_ENV,需全局垫片
+      window.process = { env: { NODE_ENV: 'production' } }
+    <\/script>
     <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"><\/script>
     <script>
       window.__unocss = {

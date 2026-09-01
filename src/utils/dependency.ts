@@ -1,5 +1,5 @@
 import { gte } from 'semver'
-import { STATIC_IMPORTS } from './static-imports'
+import { ESM_IMPORTS, STATIC_IMPORTS } from './static-imports'
 import type { Versions } from '@/composables/store'
 import type { ImportMap } from '@vue/repl'
 import type { MaybeRef } from '@vueuse/core'
@@ -13,6 +13,12 @@ export interface Dependency {
 
 export type Cdn = 'unpkg' | 'jsdelivr' | 'jsdelivr-fastly'
 export const cdn = useLocalStorage<Cdn>('setting-cdn', 'jsdelivr')
+
+const STATIC_CDN_HOST: Record<Cdn, string> = {
+  jsdelivr: 'cdn.jsdelivr.net',
+  'jsdelivr-fastly': 'fastly.jsdelivr.net',
+  unpkg: 'unpkg.com',
+}
 
 export const genCdnLink = (
   pkg: string,
@@ -43,18 +49,51 @@ export const getExtraPackages = () => {
 }
 
 /**
+ * 静态依赖树(static-imports.ts)按当前 CDN 设置拼 URL。
+ * +esm 条目只有 jsdelivr/fastly 支持;CDN 切到 unpkg 时退化为 esm.sh 转换
+ * (仅 dayjs/@ant-design/colors/@ant-design/fast-color 等无 vue 依赖的叶包)。
+ */
+// /dayjs@1.11.23/plugin/advancedFormat/+esm -> pkg/ver/subpath
+const ESM_SPEC_RE = /^\/((?:@[^/]+\/)?[^@/]+)@([^/]+)(\/[^+]*)?\/\+esm$/
+const genStaticCdnImports = (): Record<string, string> => {
+  const host = STATIC_CDN_HOST[cdn.value]
+  const out: Record<string, string> = {}
+  for (const [spec, path] of Object.entries(STATIC_IMPORTS)) {
+    if (cdn.value === 'unpkg' && ESM_IMPORTS.includes(spec)) {
+      const m = ESM_SPEC_RE.exec(path)
+      if (m) {
+        out[spec] = `https://esm.sh/${m[1]}@${m[2]}${m[3] ?? ''}`
+        continue
+      }
+      console.warn(`[playground] unpkg 无法服务 ${spec}(${path}),已跳过`)
+      continue
+    }
+    const prefix = cdn.value === 'unpkg' ? '' : '/npm'
+    out[spec] = `https://${host}${prefix}${path}`
+  }
+  return out
+}
+
+/**
  * 生成 REPL 沙箱的 import map。
  *
- * antdv-next 生态全部走 jsdelivr 原始未打包 dist（不经 esm.sh / +esm 二次打包），
- * 并统一经 import map 解析 `vue`，保证沙箱内只有一个 vue 实例、antdv-next 的
+ * antdv-next 生态全部走 CDN 原始 ESM 产物(不经 esm.sh / +esm 二次打包),
+ * 并统一经 import map 解析 `vue`,保证沙箱内只有一个 vue 实例、antdv-next 的
  * config-provider / theme 模块只有一个 Symbol——主题与配置在用户代码、pro、
- * x 组件之间完全共享（见 static-imports.ts 的枚举说明）。
+ * x 组件之间完全共享(依赖树与原始 ESM 解析见 static-imports.ts 的枚举说明)。
  *
- * 已知限制：
- * - antdv-next 的依赖版本（@v-c/* 等）按 antdv-next@1.5.3 锁定；切换其他
- *   antdvNext 版本时依赖版本不随动，个别 API 可能不兼容。
- * - antdv-next 仅显式列出常用子路径；未列出的子路径导入（如
- *   `antdv-next/theme`）不支持。
+ * 静态依赖树与 x 依赖均跟随 `cdn` 设置切换 jsdelivr / fastly / unpkg;
+ * +esm 条目(ESM_IMPORTS:dayjs、@ant-design/colors 等)在 unpkg 下退化为
+ * esm.sh 转换(jsdelivr/fastly 走原生 +esm)。
+ *
+ * 已知限制:
+ * - 静态依赖树(static-imports.ts)由 pnpm gen:imports 按生成时的 antdv-next latest
+ *   解析;在界面上切换到其他 antdvNext 版本时,@v-c/* 等依赖版本不随动,个别 API
+ *   可能不兼容(import map 只能映射一份依赖树)。
+ * - 仅覆盖 antdv-next 运行时可达的裸导入;未映射的子路径导入(如
+ *   `antdv-next/locale/fr_FR`)不支持。locale 对象只能由已映射的
+ *   @v-c/pagination/locale、@v-c/picker/locale 的 en_US/zh_CN 拼装。
+ * - x-markdown 的 marked/katex/dompurify 版本为手动固定,需随 x-markdown 发版手动更新。
  */
 export const genImportMap = ({
   vue,
@@ -99,7 +138,7 @@ export const genImportMap = ({
       antdvNext,
       '/global.d.ts',
     ),
-    ...STATIC_IMPORTS,
+    ...genStaticCdnImports(),
   }
 
   if (pro) {
@@ -136,11 +175,10 @@ export const genImportMap = ({
         '0.0.1',
         '/dist/index.js',
       ),
-      // x-markdown 的外部依赖(external 未打包,需 import map 解析)
-      dompurify:
-        'https://cdn.jsdelivr.net/npm/dompurify@3.1.0/dist/purify.es.mjs',
-      marked: 'https://cdn.jsdelivr.net/npm/marked@12.0.0/+esm',
-      katex: 'https://cdn.jsdelivr.net/npm/katex@0.16.25/+esm',
+      // x-markdown 的外部依赖(external 未打包,需 import map 解析;均用各自 ESM 构建)
+      dompurify: genCdnLink('dompurify', '3.1.0', '/dist/purify.es.mjs'),
+      marked: genCdnLink('marked', '12.0.0', '/lib/marked.esm.js'),
+      katex: genCdnLink('katex', '0.16.25', '/dist/katex.mjs'),
       // Latex 插件的裸 css import:浏览器无法 ESM 加载 css,
       // 映射为空模块占位,katex 样式由用户按需引入(如 <link> 或 index.html)
       'katex/dist/katex.min.css': 'data:text/javascript,export default {}',

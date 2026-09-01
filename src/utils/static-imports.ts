@@ -1,503 +1,140 @@
-// 静态 import map:antdv-next@1.5.3 依赖树(jsdelivr 未打包 dist,与 import map 的 vue 统一实例)
-// 生成自 antdv-next 依赖图的裸导入枚举,子路径经 exports map 解析
+// 自动生成:node scripts/gen-static-imports.mjs 1.5.3(2026-08-31),勿手改
+// antdv-next@1.5.3 依赖树(共 104 个 specifier)的运行时可达裸导入枚举:
+//   - 来源:从 genImportMap 暴露的 antdv-next 入口沿模块图 BFS,子路径经 exports map(import 条件)解析
+//   - 规则:有浏览器可用 ESM 构建的用原始文件 URL(经 import map 统一 vue 实例);
+//     无 ESM 构建的(ESM_IMPORTS)退化为 jsdelivr +esm 转换,CDN 切到 unpkg 时走 esm.sh
+// 重新生成:pnpm gen:imports(取当前 antdv-next latest);CI 校验:pnpm verify:imports
 export const STATIC_IMPORTS: Record<string, string> = {
-  '@ant-design/colors':
-    'https://cdn.jsdelivr.net/npm/@ant-design/colors@8.0.1/+esm',
-  '@ant-design/fast-color':
-    'https://cdn.jsdelivr.net/npm/@ant-design/fast-color@3.0.1/+esm',
-  '@antdv-next/cssinjs':
-    'https://cdn.jsdelivr.net/npm/@antdv-next/cssinjs@1.0.6/dist/index.js',
+  '@ant-design/colors': '/@ant-design/colors@8.0.1/+esm',
+  '@ant-design/fast-color': '/@ant-design/fast-color@3.0.1/+esm',
+  '@antdv-next/cssinjs': '/@antdv-next/cssinjs@1.0.6/dist/index.js',
   '@antdv-next/cssinjs/cssinjs-utils':
-    'https://cdn.jsdelivr.net/npm/@antdv-next/cssinjs@1.0.6/dist/cssinjs-utils/index.js',
-  '@antdv-next/icons':
-    'https://cdn.jsdelivr.net/npm/@antdv-next/icons@1.1.1/dist/antd-icons.esm.js',
-  '@antdv-next/pro':
-    'https://cdn.jsdelivr.net/npm/@antdv-next/pro@1.0.1/dist/index.js',
-  '@antdv-next/pro/scrollbar':
-    'https://cdn.jsdelivr.net/npm/@antdv-next/pro@1.0.1/dist/scrollbar/index.js',
-  '@emotion/hash': 'https://cdn.jsdelivr.net/npm/@emotion/hash@0.8.0/+esm',
-  '@emotion/unitless':
-    'https://cdn.jsdelivr.net/npm/@emotion/unitless@0.7.5/+esm',
-  '@v-c/async-validator':
-    'https://cdn.jsdelivr.net/npm/@v-c/async-validator@1.0.1/dist/index.js',
-  '@v-c/cascader':
-    'https://cdn.jsdelivr.net/npm/@v-c/cascader@1.1.2/dist/index.js',
-  '@v-c/checkbox':
-    'https://cdn.jsdelivr.net/npm/@v-c/checkbox@1.0.1/dist/index.js',
-  '@v-c/collapse':
-    'https://cdn.jsdelivr.net/npm/@v-c/collapse@1.0.1/dist/index.js',
-  '@v-c/color-picker':
-    'https://cdn.jsdelivr.net/npm/@v-c/color-picker@1.0.6/dist/index.js',
-  '@v-c/dialog': 'https://cdn.jsdelivr.net/npm/@v-c/dialog@1.2.0/dist/index.js',
-  '@v-c/drawer': 'https://cdn.jsdelivr.net/npm/@v-c/drawer@1.0.6/dist/index.js',
-  '@v-c/dropdown':
-    'https://cdn.jsdelivr.net/npm/@v-c/dropdown@1.0.5/dist/index.js',
-  '@v-c/image': 'https://cdn.jsdelivr.net/npm/@v-c/image@1.1.0/dist/index.js',
-  '@v-c/input': 'https://cdn.jsdelivr.net/npm/@v-c/input@1.1.1/dist/index.js',
-  '@v-c/input-number':
-    'https://cdn.jsdelivr.net/npm/@v-c/input-number@1.0.7/dist/index.js',
-  '@v-c/listy': 'https://cdn.jsdelivr.net/npm/@v-c/listy@1.0.2/dist/index.js',
-  '@v-c/mentions':
-    'https://cdn.jsdelivr.net/npm/@v-c/mentions@1.2.0/dist/index.js',
-  '@v-c/menu': 'https://cdn.jsdelivr.net/npm/@v-c/menu@1.3.1/dist/index.js',
-  '@v-c/mini-decimal':
-    'https://cdn.jsdelivr.net/npm/@v-c/mini-decimal@1.0.1/dist/index.js',
-  '@v-c/mutate-observer':
-    'https://cdn.jsdelivr.net/npm/@v-c/mutate-observer@1.0.2/dist/index.js',
-  '@v-c/notification':
-    'https://cdn.jsdelivr.net/npm/@v-c/notification@2.0.2/dist/index.js',
-  '@v-c/overflow':
-    'https://cdn.jsdelivr.net/npm/@v-c/overflow@1.1.1/dist/index.js',
-  '@v-c/pagination':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/index.js',
-  '@v-c/pagination/locale/ar_EG':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ar_EG.js',
-  '@v-c/pagination/locale/az_AZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/az_AZ.js',
-  '@v-c/pagination/locale/bg_BG':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/bg_BG.js',
-  '@v-c/pagination/locale/bn_BD':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/bn_BD.js',
-  '@v-c/pagination/locale/by_BY':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/by_BY.js',
-  '@v-c/pagination/locale/ca_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ca_ES.js',
-  '@v-c/pagination/locale/cs_CZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/cs_CZ.js',
-  '@v-c/pagination/locale/da_DK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/da_DK.js',
-  '@v-c/pagination/locale/de_DE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/de_DE.js',
-  '@v-c/pagination/locale/el_GR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/el_GR.js',
-  '@v-c/pagination/locale/en_GB':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/en_GB.js',
-  '@v-c/pagination/locale/en_US':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/en_US.js',
-  '@v-c/pagination/locale/es_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/es_ES.js',
-  '@v-c/pagination/locale/et_EE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/et_EE.js',
-  '@v-c/pagination/locale/eu_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/eu_ES.js',
-  '@v-c/pagination/locale/fa_IR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/fa_IR.js',
-  '@v-c/pagination/locale/fi_FI':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/fi_FI.js',
-  '@v-c/pagination/locale/fr_BE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/fr_BE.js',
-  '@v-c/pagination/locale/fr_CA':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/fr_CA.js',
-  '@v-c/pagination/locale/fr_FR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/fr_FR.js',
-  '@v-c/pagination/locale/ga_IE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ga_IE.js',
-  '@v-c/pagination/locale/gl_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/gl_ES.js',
-  '@v-c/pagination/locale/he_IL':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/he_IL.js',
-  '@v-c/pagination/locale/hi_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/hi_IN.js',
-  '@v-c/pagination/locale/hr_HR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/hr_HR.js',
-  '@v-c/pagination/locale/hu_HU':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/hu_HU.js',
-  '@v-c/pagination/locale/id_ID':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/id_ID.js',
-  '@v-c/pagination/locale/is_IS':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/is_IS.js',
-  '@v-c/pagination/locale/it_IT':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/it_IT.js',
-  '@v-c/pagination/locale/ja_JP':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ja_JP.js',
-  '@v-c/pagination/locale/ka_GE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ka_GE.js',
-  '@v-c/pagination/locale/kk_KZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/kk_KZ.js',
-  '@v-c/pagination/locale/km_KH':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/km_KH.js',
-  '@v-c/pagination/locale/kmr_IQ':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/kmr_IQ.js',
-  '@v-c/pagination/locale/kn_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/kn_IN.js',
-  '@v-c/pagination/locale/ko_KR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ko_KR.js',
-  '@v-c/pagination/locale/lt_LT':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/lt_LT.js',
-  '@v-c/pagination/locale/lv_LV':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/lv_LV.js',
-  '@v-c/pagination/locale/mk_MK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/mk_MK.js',
-  '@v-c/pagination/locale/ml_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ml_IN.js',
-  '@v-c/pagination/locale/mn_MN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/mn_MN.js',
-  '@v-c/pagination/locale/mr_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/mr_IN.js',
-  '@v-c/pagination/locale/ms_MY':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ms_MY.js',
-  '@v-c/pagination/locale/my_MM':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/my_MM.js',
-  '@v-c/pagination/locale/nb_NO':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/nb_NO.js',
-  '@v-c/pagination/locale/nl_BE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/nl_BE.js',
-  '@v-c/pagination/locale/nl_NL':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/nl_NL.js',
-  '@v-c/pagination/locale/pl_PL':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/pl_PL.js',
-  '@v-c/pagination/locale/pt_BR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/pt_BR.js',
-  '@v-c/pagination/locale/pt_PT':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/pt_PT.js',
-  '@v-c/pagination/locale/ro_RO':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ro_RO.js',
-  '@v-c/pagination/locale/ru_RU':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ru_RU.js',
-  '@v-c/pagination/locale/si_LK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/si_LK.js',
-  '@v-c/pagination/locale/sk_SK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/sk_SK.js',
-  '@v-c/pagination/locale/sl_SI':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/sl_SI.js',
-  '@v-c/pagination/locale/sr_RS':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/sr_RS.js',
-  '@v-c/pagination/locale/sv_SE':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/sv_SE.js',
-  '@v-c/pagination/locale/ta_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ta_IN.js',
-  '@v-c/pagination/locale/th_TH':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/th_TH.js',
-  '@v-c/pagination/locale/tk_TK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/tk_TK.js',
-  '@v-c/pagination/locale/tr_TR':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/tr_TR.js',
-  '@v-c/pagination/locale/uk_UA':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/uk_UA.js',
-  '@v-c/pagination/locale/ur_PK':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/ur_PK.js',
-  '@v-c/pagination/locale/uz_UZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/uz_UZ.js',
-  '@v-c/pagination/locale/vi_VN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/vi_VN.js',
-  '@v-c/pagination/locale/zh_CN':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/zh_CN.js',
-  '@v-c/pagination/locale/zh_TW':
-    'https://cdn.jsdelivr.net/npm/@v-c/pagination@1.1.1/dist/locale/zh_TW.js',
-  '@v-c/picker': 'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/index.js',
-  '@v-c/picker/generate/dayjs':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/generate/dayjs.js',
-  '@v-c/picker/locale/ar_EG':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ar_EG.js',
-  '@v-c/picker/locale/az_AZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/az_AZ.js',
-  '@v-c/picker/locale/bg_BG':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/bg_BG.js',
-  '@v-c/picker/locale/bn_BD':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/bn_BD.js',
-  '@v-c/picker/locale/by_BY':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/by_BY.js',
-  '@v-c/picker/locale/ca_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ca_ES.js',
-  '@v-c/picker/locale/cs_CZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/cs_CZ.js',
-  '@v-c/picker/locale/da_DK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/da_DK.js',
-  '@v-c/picker/locale/de_DE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/de_DE.js',
-  '@v-c/picker/locale/el_GR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/el_GR.js',
-  '@v-c/picker/locale/en_GB':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/en_GB.js',
-  '@v-c/picker/locale/en_US':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/en_US.js',
-  '@v-c/picker/locale/es_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/es_ES.js',
-  '@v-c/picker/locale/et_EE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/et_EE.js',
-  '@v-c/picker/locale/eu_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/eu_ES.js',
-  '@v-c/picker/locale/fa_IR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/fa_IR.js',
-  '@v-c/picker/locale/fi_FI':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/fi_FI.js',
-  '@v-c/picker/locale/fr_BE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/fr_BE.js',
-  '@v-c/picker/locale/fr_CA':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/fr_CA.js',
-  '@v-c/picker/locale/fr_FR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/fr_FR.js',
-  '@v-c/picker/locale/ga_IE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ga_IE.js',
-  '@v-c/picker/locale/gl_ES':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/gl_ES.js',
-  '@v-c/picker/locale/he_IL':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/he_IL.js',
-  '@v-c/picker/locale/hi_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/hi_IN.js',
-  '@v-c/picker/locale/hr_HR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/hr_HR.js',
-  '@v-c/picker/locale/hu_HU':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/hu_HU.js',
-  '@v-c/picker/locale/id_ID':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/id_ID.js',
-  '@v-c/picker/locale/is_IS':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/is_IS.js',
-  '@v-c/picker/locale/it_IT':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/it_IT.js',
-  '@v-c/picker/locale/ja_JP':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ja_JP.js',
-  '@v-c/picker/locale/ka_GE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ka_GE.js',
-  '@v-c/picker/locale/kk_KZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/kk_KZ.js',
-  '@v-c/picker/locale/km_KH':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/km_KH.js',
-  '@v-c/picker/locale/kmr_IQ':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/kmr_IQ.js',
-  '@v-c/picker/locale/kn_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/kn_IN.js',
-  '@v-c/picker/locale/ko_KR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ko_KR.js',
-  '@v-c/picker/locale/lt_LT':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/lt_LT.js',
-  '@v-c/picker/locale/lv_LV':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/lv_LV.js',
-  '@v-c/picker/locale/mk_MK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/mk_MK.js',
-  '@v-c/picker/locale/ml_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ml_IN.js',
-  '@v-c/picker/locale/mn_MN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/mn_MN.js',
-  '@v-c/picker/locale/mr_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/mr_IN.js',
-  '@v-c/picker/locale/ms_MY':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ms_MY.js',
-  '@v-c/picker/locale/my_MM':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/my_MM.js',
-  '@v-c/picker/locale/nb_NO':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/nb_NO.js',
-  '@v-c/picker/locale/nl_BE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/nl_BE.js',
-  '@v-c/picker/locale/nl_NL':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/nl_NL.js',
-  '@v-c/picker/locale/pl_PL':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/pl_PL.js',
-  '@v-c/picker/locale/pt_BR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/pt_BR.js',
-  '@v-c/picker/locale/pt_PT':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/pt_PT.js',
-  '@v-c/picker/locale/ro_RO':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ro_RO.js',
-  '@v-c/picker/locale/ru_RU':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ru_RU.js',
-  '@v-c/picker/locale/si_LK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/si_LK.js',
-  '@v-c/picker/locale/sk_SK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/sk_SK.js',
-  '@v-c/picker/locale/sr_RS':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/sr_RS.js',
-  '@v-c/picker/locale/sv_SE':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/sv_SE.js',
-  '@v-c/picker/locale/ta_IN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ta_IN.js',
-  '@v-c/picker/locale/th_TH':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/th_TH.js',
-  '@v-c/picker/locale/tk_TK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/tk_TK.js',
-  '@v-c/picker/locale/tr_TR':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/tr_TR.js',
-  '@v-c/picker/locale/uk_UA':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/uk_UA.js',
-  '@v-c/picker/locale/ur_PK':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/ur_PK.js',
-  '@v-c/picker/locale/uz_UZ':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/uz_UZ.js',
-  '@v-c/picker/locale/vi_VN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/vi_VN.js',
-  '@v-c/picker/locale/zh_CN':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/zh_CN.js',
-  '@v-c/picker/locale/zh_TW':
-    'https://cdn.jsdelivr.net/npm/@v-c/picker@1.3.2/dist/locale/zh_TW.js',
-  '@v-c/portal': 'https://cdn.jsdelivr.net/npm/@v-c/portal@1.0.8/dist/index.js',
-  '@v-c/progress':
-    'https://cdn.jsdelivr.net/npm/@v-c/progress@1.0.1/dist/index.js',
-  '@v-c/qrcode': 'https://cdn.jsdelivr.net/npm/@v-c/qrcode@1.0.1/dist/index.js',
-  '@v-c/rate': 'https://cdn.jsdelivr.net/npm/@v-c/rate@1.0.1/dist/index.js',
-  '@v-c/resize-observer':
-    'https://cdn.jsdelivr.net/npm/@v-c/resize-observer@1.1.3/dist/index.js',
-  '@v-c/segmented':
-    'https://cdn.jsdelivr.net/npm/@v-c/segmented@1.0.4/dist/index.js',
-  '@v-c/select': 'https://cdn.jsdelivr.net/npm/@v-c/select@1.2.4/dist/index.js',
-  '@v-c/slick': 'https://cdn.jsdelivr.net/npm/@v-c/slick@1.0.2/dist/index.js',
-  '@v-c/slider': 'https://cdn.jsdelivr.net/npm/@v-c/slider@1.1.0/dist/index.js',
-  '@v-c/steps': 'https://cdn.jsdelivr.net/npm/@v-c/steps@1.0.0/dist/index.js',
+    '/@antdv-next/cssinjs@1.0.6/dist/cssinjs-utils/index.js',
+  '@antdv-next/icons': '/@antdv-next/icons@1.1.2/dist/antd-icons.esm.js',
+  '@emotion/hash': '/@emotion/hash@0.8.0/dist/hash.esm.js',
+  '@emotion/unitless': '/@emotion/unitless@0.7.5/dist/unitless.esm.js',
+  '@v-c/async-validator': '/@v-c/async-validator@1.0.1/dist/index.js',
+  '@v-c/cascader': '/@v-c/cascader@1.1.2/dist/index.js',
+  '@v-c/checkbox': '/@v-c/checkbox@1.0.1/dist/index.js',
+  '@v-c/collapse': '/@v-c/collapse@1.0.1/dist/index.js',
+  '@v-c/color-picker': '/@v-c/color-picker@1.0.6/dist/index.js',
+  '@v-c/dialog': '/@v-c/dialog@1.2.0/dist/index.js',
+  '@v-c/drawer': '/@v-c/drawer@1.0.6/dist/index.js',
+  '@v-c/dropdown': '/@v-c/dropdown@1.0.5/dist/index.js',
+  '@v-c/image': '/@v-c/image@1.1.0/dist/index.js',
+  '@v-c/input': '/@v-c/input@1.1.1/dist/index.js',
+  '@v-c/input-number': '/@v-c/input-number@1.0.7/dist/index.js',
+  '@v-c/listy': '/@v-c/listy@1.0.2/dist/index.js',
+  '@v-c/mentions': '/@v-c/mentions@1.2.0/dist/index.js',
+  '@v-c/menu': '/@v-c/menu@1.3.1/dist/index.js',
+  '@v-c/mini-decimal': '/@v-c/mini-decimal@1.0.1/dist/index.js',
+  '@v-c/mutate-observer': '/@v-c/mutate-observer@1.0.2/dist/index.js',
+  '@v-c/notification': '/@v-c/notification@2.0.2/dist/index.js',
+  '@v-c/overflow': '/@v-c/overflow@1.1.1/dist/index.js',
+  '@v-c/pagination': '/@v-c/pagination@1.1.1/dist/index.js',
+  '@v-c/pagination/locale/en_US': '/@v-c/pagination@1.1.1/dist/locale/en_US.js',
+  '@v-c/pagination/locale/zh_CN': '/@v-c/pagination@1.1.1/dist/locale/zh_CN.js',
+  '@v-c/picker': '/@v-c/picker@1.3.2/dist/index.js',
+  '@v-c/picker/generate/dayjs': '/@v-c/picker@1.3.2/dist/generate/dayjs.js',
+  '@v-c/picker/locale/en_US': '/@v-c/picker@1.3.2/dist/locale/en_US.js',
+  '@v-c/portal': '/@v-c/portal@1.0.8/dist/index.js',
+  '@v-c/progress': '/@v-c/progress@1.0.1/dist/index.js',
+  '@v-c/qrcode': '/@v-c/qrcode@1.0.1/dist/index.js',
+  '@v-c/rate': '/@v-c/rate@1.0.1/dist/index.js',
+  '@v-c/resize-observer': '/@v-c/resize-observer@1.1.3/dist/index.js',
+  '@v-c/segmented': '/@v-c/segmented@1.0.4/dist/index.js',
+  '@v-c/select': '/@v-c/select@1.2.4/dist/index.js',
+  '@v-c/slick': '/@v-c/slick@1.0.2/dist/index.js',
+  '@v-c/slider': '/@v-c/slider@1.1.0/dist/index.js',
+  '@v-c/steps': '/@v-c/steps@1.0.0/dist/index.js',
   '@v-c/steps/dist/UnstableContext.js':
-    'https://cdn.jsdelivr.net/npm/@v-c/steps@1.0.0/dist/UnstableContext.js',
-  '@v-c/switch': 'https://cdn.jsdelivr.net/npm/@v-c/switch@1.0.1/dist/index.js',
-  '@v-c/table': 'https://cdn.jsdelivr.net/npm/@v-c/table@1.2.0/dist/index.js',
-  '@v-c/tabs': 'https://cdn.jsdelivr.net/npm/@v-c/tabs@1.3.0/dist/index.js',
-  '@v-c/textarea':
-    'https://cdn.jsdelivr.net/npm/@v-c/textarea@1.1.0/dist/index.js',
-  '@v-c/tooltip':
-    'https://cdn.jsdelivr.net/npm/@v-c/tooltip@1.1.0/dist/index.js',
-  '@v-c/tour': 'https://cdn.jsdelivr.net/npm/@v-c/tour@1.1.1/dist/index.js',
-  '@v-c/tree': 'https://cdn.jsdelivr.net/npm/@v-c/tree@1.2.0/dist/index.js',
-  '@v-c/tree-select':
-    'https://cdn.jsdelivr.net/npm/@v-c/tree-select@1.1.2/dist/index.js',
-  '@v-c/trigger':
-    'https://cdn.jsdelivr.net/npm/@v-c/trigger@1.1.1/dist/index.js',
-  '@v-c/upload': 'https://cdn.jsdelivr.net/npm/@v-c/upload@1.0.0/dist/index.js',
-  '@v-c/util': 'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/index.js',
+    '/@v-c/steps@1.0.0/dist/UnstableContext.js',
+  '@v-c/switch': '/@v-c/switch@1.0.1/dist/index.js',
+  '@v-c/table': '/@v-c/table@1.2.0/dist/index.js',
+  '@v-c/tabs': '/@v-c/tabs@1.3.0/dist/index.js',
+  '@v-c/textarea': '/@v-c/textarea@1.1.0/dist/index.js',
+  '@v-c/tooltip': '/@v-c/tooltip@1.1.0/dist/index.js',
+  '@v-c/tour': '/@v-c/tour@1.1.1/dist/index.js',
+  '@v-c/tree': '/@v-c/tree@1.2.0/dist/index.js',
+  '@v-c/tree-select': '/@v-c/tree-select@1.1.2/dist/index.js',
+  '@v-c/trigger': '/@v-c/trigger@1.1.1/dist/index.js',
+  '@v-c/upload': '/@v-c/upload@1.0.0/dist/index.js',
+  '@v-c/util': '/@v-c/util@1.1.0/dist/index.js',
   '@v-c/util/dist/Children/isFragment':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Children/isFragment.js',
+    '/@v-c/util@1.1.0/dist/Children/isFragment.js',
   '@v-c/util/dist/Children/toArray':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Children/toArray.js',
-  '@v-c/util/dist/Dom/addEventListener':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/addEventListener.js',
-  '@v-c/util/dist/Dom/canUseDom':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/canUseDom.js',
-  '@v-c/util/dist/Dom/class':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/class.js',
-  '@v-c/util/dist/Dom/contains':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/contains.js',
-  '@v-c/util/dist/Dom/css':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/css.js',
-  '@v-c/util/dist/Dom/dynamicCSS':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/dynamicCSS.js',
-  '@v-c/util/dist/Dom/findDOMNode':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/findDOMNode.js',
-  '@v-c/util/dist/Dom/focus':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/focus.js',
+    '/@v-c/util@1.1.0/dist/Children/toArray.js',
+  '@v-c/util/dist/Dom/canUseDom': '/@v-c/util@1.1.0/dist/Dom/canUseDom.js',
+  '@v-c/util/dist/Dom/class': '/@v-c/util@1.1.0/dist/Dom/class.js',
+  '@v-c/util/dist/Dom/contains': '/@v-c/util@1.1.0/dist/Dom/contains.js',
+  '@v-c/util/dist/Dom/dynamicCSS': '/@v-c/util@1.1.0/dist/Dom/dynamicCSS.js',
+  '@v-c/util/dist/Dom/findDOMNode': '/@v-c/util@1.1.0/dist/Dom/findDOMNode.js',
+  '@v-c/util/dist/Dom/focus': '/@v-c/util@1.1.0/dist/Dom/focus.js',
   '@v-c/util/dist/Dom/focusBoundary':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/focusBoundary.js',
-  '@v-c/util/dist/Dom/isVisible':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/isVisible.js',
-  '@v-c/util/dist/Dom/scrollLocker':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/scrollLocker.js',
-  '@v-c/util/dist/Dom/shadow':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/shadow.js',
+    '/@v-c/util@1.1.0/dist/Dom/focusBoundary.js',
+  '@v-c/util/dist/Dom/isVisible': '/@v-c/util@1.1.0/dist/Dom/isVisible.js',
+  '@v-c/util/dist/Dom/shadow': '/@v-c/util@1.1.0/dist/Dom/shadow.js',
   '@v-c/util/dist/Dom/styleChecker':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/styleChecker.js',
-  '@v-c/util/dist/Dom/support':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Dom/support.js',
-  '@v-c/util/dist/EventInterface':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/EventInterface.js',
-  '@v-c/util/dist/KeyCode':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/KeyCode.js',
-  '@v-c/util/dist/Portal':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/Portal.js',
-  '@v-c/util/dist/PortalWrapper':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/PortalWrapper.js',
-  '@v-c/util/dist/RenderComponent':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/RenderComponent.js',
-  '@v-c/util/dist/classnames':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/classnames.js',
-  '@v-c/util/dist/composeProps':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/composeProps.js',
-  '@v-c/util/dist/createRef':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/createRef.js',
-  '@v-c/util/dist/debug/diff':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/debug/diff.js',
-  '@v-c/util/dist/deprecated':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/deprecated.js',
+    '/@v-c/util@1.1.0/dist/Dom/styleChecker.js',
+  '@v-c/util/dist/KeyCode': '/@v-c/util@1.1.0/dist/KeyCode.js',
+  '@v-c/util/dist/RenderComponent': '/@v-c/util@1.1.0/dist/RenderComponent.js',
   '@v-c/util/dist/getScrollBarSize':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/getScrollBarSize.js',
-  '@v-c/util/dist/guid':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/guid.js',
-  '@v-c/util/dist/hooks/useControlledState':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useControlledState.js',
+    '/@v-c/util@1.1.0/dist/getScrollBarSize.js',
   '@v-c/util/dist/hooks/useDelayState':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useDelayState.js',
-  '@v-c/util/dist/hooks/useEvent':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useEvent.js',
-  '@v-c/util/dist/hooks/useId':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useId.js',
+    '/@v-c/util@1.1.0/dist/hooks/useDelayState.js',
+  '@v-c/util/dist/hooks/useEvent': '/@v-c/util@1.1.0/dist/hooks/useEvent.js',
+  '@v-c/util/dist/hooks/useId': '/@v-c/util@1.1.0/dist/hooks/useId.js',
   '@v-c/util/dist/hooks/useLayoutEffect':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useLayoutEffect.js',
-  '@v-c/util/dist/hooks/useMemo':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useMemo.js',
+    '/@v-c/util@1.1.0/dist/hooks/useLayoutEffect.js',
+  '@v-c/util/dist/hooks/useMemo': '/@v-c/util@1.1.0/dist/hooks/useMemo.js',
   '@v-c/util/dist/hooks/useMergedState':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useMergedState.js',
-  '@v-c/util/dist/hooks/useMobile':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useMobile.js',
-  '@v-c/util/dist/hooks/useState':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/hooks/useState.js',
-  '@v-c/util/dist/index':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/index.js',
-  '@v-c/util/dist/isEqual':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/isEqual.js',
-  '@v-c/util/dist/isMobile':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/isMobile.js',
-  '@v-c/util/dist/isValid':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/isValid.js',
-  '@v-c/util/dist/omit':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/omit.js',
-  '@v-c/util/dist/pickAttrs':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/pickAttrs.js',
-  '@v-c/util/dist/props-util':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/props-util/index.js',
-  '@v-c/util/dist/props-util/index':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/props-util/index.js',
-  '@v-c/util/dist/raf':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/raf.js',
-  '@v-c/util/dist/setStyle':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/setStyle.js',
-  '@v-c/util/dist/switchScrollingEffect':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/switchScrollingEffect.js',
-  '@v-c/util/dist/test/domHook':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/test/domHook.js',
-  '@v-c/util/dist/type':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/type.js',
-  '@v-c/util/dist/utils/checkSlotProp':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/checkSlotProp.js',
-  '@v-c/util/dist/utils/get':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/get.js',
-  '@v-c/util/dist/utils/omit':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/omit.js',
-  '@v-c/util/dist/utils/set':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/set.js',
+    '/@v-c/util@1.1.0/dist/hooks/useMergedState.js',
+  '@v-c/util/dist/isEqual': '/@v-c/util@1.1.0/dist/isEqual.js',
+  '@v-c/util/dist/isMobile': '/@v-c/util@1.1.0/dist/isMobile.js',
+  '@v-c/util/dist/omit': '/@v-c/util@1.1.0/dist/omit.js',
+  '@v-c/util/dist/pickAttrs': '/@v-c/util@1.1.0/dist/pickAttrs.js',
+  '@v-c/util/dist/props-util': '/@v-c/util@1.1.0/dist/props-util/index.js',
+  '@v-c/util/dist/raf': '/@v-c/util@1.1.0/dist/raf.js',
+  '@v-c/util/dist/utils/get': '/@v-c/util@1.1.0/dist/utils/get.js',
+  '@v-c/util/dist/utils/omit': '/@v-c/util@1.1.0/dist/utils/omit.js',
+  '@v-c/util/dist/utils/set': '/@v-c/util@1.1.0/dist/utils/set.js',
   '@v-c/util/dist/utils/transition':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/transition.js',
-  '@v-c/util/dist/utils/watchState':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/utils/watchState.js',
-  '@v-c/util/dist/vnode':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/vnode.js',
+    '/@v-c/util@1.1.0/dist/utils/transition.js',
+  '@v-c/util/dist/vnode': '/@v-c/util@1.1.0/dist/vnode.js',
   '@v-c/util/dist/vueuse/unref-element':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/vueuse/unref-element.js',
-  '@v-c/util/dist/warning':
-    'https://cdn.jsdelivr.net/npm/@v-c/util@1.1.0/dist/warning.js',
-  '@v-c/virtual-list':
-    'https://cdn.jsdelivr.net/npm/@v-c/virtual-list@1.1.1/dist/index.js',
-  '@vueuse/core':
-    'https://cdn.jsdelivr.net/npm/@vueuse/core@14.4.0/dist/index.js',
-  '@vueuse/shared':
-    'https://cdn.jsdelivr.net/npm/@vueuse/shared@14.4.0/dist/index.js',
-  'compute-scroll-into-view':
-    'https://cdn.jsdelivr.net/npm/compute-scroll-into-view@3.1.0/dist/index.js',
-  'date-fns': 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/index.js',
-  'date-fns/locale': 'https://cdn.jsdelivr.net/npm/date-fns@4.1.0/locale.js',
-  dayjs: 'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/+esm',
-  'dayjs/plugin/advancedFormat':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/advancedFormat/+esm',
+    '/@v-c/util@1.1.0/dist/vueuse/unref-element.js',
+  '@v-c/util/dist/warning': '/@v-c/util@1.1.0/dist/warning.js',
+  '@v-c/virtual-list': '/@v-c/virtual-list@1.1.1/dist/index.js',
+  '@vueuse/core': '/@vueuse/core@14.4.0/dist/index.js',
+  '@vueuse/shared': '/@vueuse/shared@14.4.0/dist/index.js',
+  'compute-scroll-into-view': '/compute-scroll-into-view@3.1.1/dist/index.js',
+  dayjs: '/dayjs@1.11.23/+esm',
+  'dayjs/plugin/advancedFormat': '/dayjs@1.11.23/plugin/advancedFormat/+esm',
   'dayjs/plugin/customParseFormat':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/customParseFormat/+esm',
-  'dayjs/plugin/localeData':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/localeData/+esm',
-  'dayjs/plugin/weekOfYear':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/weekOfYear/+esm',
-  'dayjs/plugin/weekYear':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/weekYear/+esm',
-  'dayjs/plugin/weekday':
-    'https://cdn.jsdelivr.net/npm/dayjs@1.11.19/plugin/weekday/+esm',
-  'es-toolkit': 'https://cdn.jsdelivr.net/npm/es-toolkit@1.50.0/dist/index.mjs',
-  'es-toolkit/compat':
-    'https://cdn.jsdelivr.net/npm/es-toolkit@1.50.0/dist/compat/index.mjs',
+    '/dayjs@1.11.23/plugin/customParseFormat/+esm',
+  'dayjs/plugin/localeData': '/dayjs@1.11.23/plugin/localeData/+esm',
+  'dayjs/plugin/weekOfYear': '/dayjs@1.11.23/plugin/weekOfYear/+esm',
+  'dayjs/plugin/weekYear': '/dayjs@1.11.23/plugin/weekYear/+esm',
+  'dayjs/plugin/weekday': '/dayjs@1.11.23/plugin/weekday/+esm',
+  'es-toolkit': '/es-toolkit@1.50.0/dist/index.mjs',
+  'es-toolkit/compat': '/es-toolkit@1.50.0/dist/compat/index.mjs',
   'resize-observer-polyfill':
-    'https://cdn.jsdelivr.net/npm/resize-observer-polyfill@1.5.1/+esm',
+    '/resize-observer-polyfill@1.5.1/dist/ResizeObserver.es.js',
   'scroll-into-view-if-needed':
-    'https://cdn.jsdelivr.net/npm/scroll-into-view-if-needed@3.1.0/dist/index.js',
-  stylis: 'https://cdn.jsdelivr.net/npm/stylis@4.3.6/+esm',
-  'throttle-debounce':
-    'https://cdn.jsdelivr.net/npm/throttle-debounce@5.0.2/+esm',
+    '/scroll-into-view-if-needed@3.1.0/dist/index.js',
+  stylis: '/stylis@4.4.0/index.js',
+  'throttle-debounce': '/throttle-debounce@5.0.2/esm/index.js',
 }
+
+/** 需要 jsdelivr +esm 转换的 specifier(unpkg 不支持,CDN 切到 unpkg 时从 map 跳过) */
+export const ESM_IMPORTS: string[] = [
+  '@ant-design/colors',
+  '@ant-design/fast-color',
+  'dayjs',
+  'dayjs/plugin/advancedFormat',
+  'dayjs/plugin/customParseFormat',
+  'dayjs/plugin/localeData',
+  'dayjs/plugin/weekOfYear',
+  'dayjs/plugin/weekYear',
+  'dayjs/plugin/weekday',
+]
