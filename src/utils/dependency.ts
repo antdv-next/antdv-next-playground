@@ -49,29 +49,122 @@ export const getExtraPackages = () => {
 }
 
 /**
- * 静态依赖树(static-imports.ts)按当前 CDN 设置拼 URL。
+ * 静态依赖树(static-imports.ts)按当前 CDN 设置拼 URL,并可按所选 antdv-next 版本
+ * 覆盖其直接依赖(见 resolveAntdvDeps)的版本号。
  * +esm 条目只有 jsdelivr/fastly 支持;CDN 切到 unpkg 时退化为 esm.sh 转换
  * (仅 dayjs/@ant-design/colors/@ant-design/fast-color 等无 vue 依赖的叶包)。
  */
-// /dayjs@1.11.23/plugin/advancedFormat/+esm -> pkg/ver/subpath
-const ESM_SPEC_RE = /^\/((?:@[^/]+\/)?[^@/]+)@([^/]+)(\/[^+]*)?\/\+esm$/
-const genStaticCdnImports = (): Record<string, string> => {
+// /@v-c/input@1.1.1/dist/index.js 或 /@ant-design/colors@8.0.1/+esm -> root/ver/path
+const STATIC_SPEC_RE = /^\/((?:@[^/]+\/)?[^@/]+)@([^/]+)(\/.*)?$/
+const applyStaticOverride = (
+  path: string,
+  overrides: Record<string, string>,
+) => {
+  const m = STATIC_SPEC_RE.exec(path)
+  if (!m) return path
+  const version = overrides[m[1]] ?? m[2]
+  return `/${m[1]}@${version}${m[3] ?? ''}`
+}
+const genStaticCdnImports = (
+  overrides: Record<string, string> = {},
+): Record<string, string> => {
   const host = STATIC_CDN_HOST[cdn.value]
   const out: Record<string, string> = {}
   for (const [spec, path] of Object.entries(STATIC_IMPORTS)) {
+    const urlPath = applyStaticOverride(path, overrides)
     if (cdn.value === 'unpkg' && ESM_IMPORTS.includes(spec)) {
-      const m = ESM_SPEC_RE.exec(path)
+      const m = STATIC_SPEC_RE.exec(urlPath)
       if (m) {
-        out[spec] = `https://esm.sh/${m[1]}@${m[2]}${m[3] ?? ''}`
+        out[spec] =
+          `https://esm.sh/${m[1]}@${m[2]}${(m[3] ?? '').replace(/\/\+esm$/, '')}`
         continue
       }
-      console.warn(`[playground] unpkg 无法服务 ${spec}(${path}),已跳过`)
+      console.warn(`[playground] unpkg 无法服务 ${spec}(${urlPath}),已跳过`)
       continue
     }
     const prefix = cdn.value === 'unpkg' ? '' : '/npm'
-    out[spec] = `https://${host}${prefix}${path}`
+    out[spec] = `https://${host}${prefix}${urlPath}`
   }
   return out
+}
+
+// 静态树里每个根包的首条路径,用作版本变更后的存在性探测
+const ROOT_STATIC_PATHS = new Map<string, string>()
+for (const [, path] of Object.entries(STATIC_IMPORTS)) {
+  const m = STATIC_SPEC_RE.exec(path)
+  if (m && !ROOT_STATIC_PATHS.has(m[1])) ROOT_STATIC_PATHS.set(m[1], path)
+}
+
+const ANTDV_DEPS_CACHE = new Map<string, Record<string, string>>()
+const PROBE_CACHE = new Map<string, boolean>()
+
+const fetchJson = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`${res.status} ${url}`)
+  return res.json()
+}
+
+const probeUrl = async (url: string) => {
+  const cached = PROBE_CACHE.get(url)
+  if (cached !== undefined) return cached
+  try {
+    const res = await fetch(url, { method: 'HEAD' })
+    PROBE_CACHE.set(url, res.ok)
+    return res.ok
+  } catch {
+    PROBE_CACHE.set(url, false)
+    return false
+  }
+}
+
+/**
+ * 解析 antdv-next 指定版本的直接依赖 range -> 精确版本,用于覆盖静态树版本
+ * (static-imports.ts 是生成时的快照,切到其他版本时 @v-c/* 等应跟随所选版本)。
+ *
+ * - 子路径条目(如 @v-c/pagination/locale/en_US)随根包版本自动一致
+ * - 仅当解析版本与静态树版本不同时,HEAD 校验根入口 URL,404 则回退静态版本
+ * - 单个包解析失败或整体失败(网络/版本不存在)都回退静态树,不阻塞
+ */
+export const resolveAntdvDeps = async (antdvVersion: string) => {
+  const cached = ANTDV_DEPS_CACHE.get(antdvVersion)
+  if (cached) return cached
+  if (!antdvVersion || antdvVersion === 'preview') return {}
+  try {
+    const pkg = await fetchJson(
+      genCdnLink('antdv-next', antdvVersion, '/package.json'),
+    )
+    const ranges = (pkg.dependencies ?? {}) as Record<string, string>
+    const resolved: Record<string, string> = {}
+    await Promise.all(
+      Object.entries(ranges).map(async ([name, range]) => {
+        if (typeof range !== 'string' || !/^[\^~]?\d/.test(range)) return
+        const staticPath = ROOT_STATIC_PATHS.get(name)
+        if (!staticPath) return // 不在静态树,无路径信息可覆盖
+        const staticVer = STATIC_SPEC_RE.exec(staticPath)?.[2]
+        try {
+          const { version } = await fetchJson(
+            `https://data.jsdelivr.com/v1/package/resolve/npm/${name}@${range}`,
+          )
+          if (!version || version === staticVer) {
+            resolved[name] = version
+            return
+          }
+          const ok = await probeUrl(
+            `https://cdn.jsdelivr.net/npm${applyStaticOverride(staticPath, {
+              [name]: version,
+            })}`,
+          )
+          if (ok) resolved[name] = version
+        } catch {
+          // 单个包解析失败,保留静态版本
+        }
+      }),
+    )
+    ANTDV_DEPS_CACHE.set(antdvVersion, resolved)
+    return resolved
+  } catch {
+    return {}
+  }
 }
 
 /**
@@ -86,21 +179,21 @@ const genStaticCdnImports = (): Record<string, string> => {
  * +esm 条目(ESM_IMPORTS:dayjs、@ant-design/colors 等)在 unpkg 下退化为
  * esm.sh 转换(jsdelivr/fastly 走原生 +esm)。
  *
+ * 版本跟随:静态树是生成时的快照,运行时按所选 antdv-next 版本重新解析其直接
+ * 依赖(resolveAntdvDeps)并覆盖版本号;传递依赖叶子与子路径布局仍以静态树为准。
+ *
  * 已知限制:
- * - 静态依赖树(static-imports.ts)由 pnpm gen:imports 按生成时的 antdv-next latest
- *   解析;在界面上切换到其他 antdvNext 版本时,@v-c/* 等依赖版本不随动,个别 API
- *   可能不兼容(import map 只能映射一份依赖树)。
+ * - 覆盖仅针对静态树中已存在的根包;antdv-next 新版本引入的全新依赖不在树内,
+ *   需 pnpm gen:imports 重新生成(CI verify:imports 会提示)。
  * - 仅覆盖 antdv-next 运行时可达的裸导入;未映射的子路径导入(如
  *   `antdv-next/locale/fr_FR`)不支持。locale 对象只能由已映射的
  *   @v-c/pagination/locale、@v-c/picker/locale 的 en_US/zh_CN 拼装。
  * - x-markdown 的 marked/katex/dompurify 版本为手动固定,需随 x-markdown 发版手动更新。
  */
-export const genImportMap = ({
-  vue,
-  antdvNext,
-  pro,
-  x,
-}: Partial<Versions> = {}): ImportMap => {
+export const genImportMap = (
+  { vue, antdvNext, pro, x }: Partial<Versions> = {},
+  deps: Record<string, string> = {},
+): ImportMap => {
   const imports: Record<string, string> = {
     vue: genCdnLink(
       '@vue/runtime-dom',
@@ -138,7 +231,7 @@ export const genImportMap = ({
       antdvNext,
       '/global.d.ts',
     ),
-    ...genStaticCdnImports(),
+    ...genStaticCdnImports(deps),
   }
 
   if (pro) {

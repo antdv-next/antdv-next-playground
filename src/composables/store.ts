@@ -12,6 +12,7 @@ import {
   genCdnLink,
   genCompilerSfcLink,
   genImportMap,
+  resolveAntdvDeps,
 } from '@/utils/dependency'
 import { atou, utoa } from '@/utils/encode'
 import antdvNextCode from '../template/antdv-next.js?raw'
@@ -109,16 +110,26 @@ export const useStore = (initial: Initial) => {
     () => featureFlags.x,
     (v) => (userOptions.xEnabled = v),
   )
+  // 按所选 antdv-next 版本解析其直接依赖的精确版本,覆盖静态树快照;
+  // 解析期间(或失败时)保持静态树,import map 不闪断
+  const resolvedDeps = shallowRef<Record<string, string>>({})
+  const refreshDeps = useDebounceFn(async () => {
+    resolvedDeps.value = await resolveAntdvDeps(versions.antdvNext)
+  }, 300)
+  watch(() => versions.antdvNext, refreshDeps, { immediate: true })
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
   const builtinImportMap = computed<ImportMap>(() => {
     // PR 预览模式下 antdv-next 来自 PR 构建，pro/x 的 ?deps= 无法解析 preview 版本，禁用
-    let importMap = genImportMap({
-      ...versions,
-      pro: pr ? undefined : featureFlags.pro ? versions.pro : undefined,
-      x: pr ? undefined : featureFlags.x ? versions.x : undefined,
-    })
+    let importMap = genImportMap(
+      {
+        ...versions,
+        pro: pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+        x: pr ? undefined : featureFlags.x ? versions.x : undefined,
+      },
+      resolvedDeps.value,
+    )
     if (pr)
       importMap = mergeImportMap(importMap, {
         imports: {
