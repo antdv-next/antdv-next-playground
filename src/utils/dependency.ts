@@ -95,14 +95,50 @@ for (const [, path] of Object.entries(STATIC_IMPORTS)) {
   if (m && !ROOT_STATIC_PATHS.has(m[1])) ROOT_STATIC_PATHS.set(m[1], path)
 }
 
+const PKG_DEPS_CACHE = new Map<string, Record<string, string>>()
 const ANTDV_DEPS_CACHE = new Map<string, Record<string, string>>()
-const PROBE_CACHE = new Map<string, boolean>()
+const X_DEPS_CACHE = new Map<string, Record<string, string>>()
 
 const fetchJson = async (url: string) => {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`${res.status} ${url}`)
   return res.json()
 }
+
+/**
+ * 解析指定包的直接依赖 range -> 精确版本(jsdelivr resolve API,取 range 内最新)。
+ * 失败(网络/版本不存在)回退空表,不抛错。
+ */
+const resolvePackageDeps = async (pkg: string, version: string) => {
+  const key = `${pkg}@${version}`
+  const cached = PKG_DEPS_CACHE.get(key)
+  if (cached) return cached
+  if (!version || version === 'preview') return {}
+  try {
+    const pkgJson = await fetchJson(genCdnLink(pkg, version, '/package.json'))
+    const ranges = (pkgJson.dependencies ?? {}) as Record<string, string>
+    const resolved: Record<string, string> = {}
+    await Promise.all(
+      Object.entries(ranges).map(async ([name, range]) => {
+        if (typeof range !== 'string' || !/^[\^~]?\d/.test(range)) return
+        try {
+          const { version: v } = await fetchJson(
+            `https://data.jsdelivr.com/v1/package/resolve/npm/${name}@${range}`,
+          )
+          if (v) resolved[name] = v
+        } catch {
+          // 单个包解析失败,保留默认版本
+        }
+      }),
+    )
+    PKG_DEPS_CACHE.set(key, resolved)
+    return resolved
+  } catch {
+    return {}
+  }
+}
+
+const PROBE_CACHE = new Map<string, boolean>()
 
 const probeUrl = async (url: string) => {
   const cached = PROBE_CACHE.get(url)
@@ -128,43 +164,60 @@ const probeUrl = async (url: string) => {
 export const resolveAntdvDeps = async (antdvVersion: string) => {
   const cached = ANTDV_DEPS_CACHE.get(antdvVersion)
   if (cached) return cached
-  if (!antdvVersion || antdvVersion === 'preview') return {}
-  try {
-    const pkg = await fetchJson(
-      genCdnLink('antdv-next', antdvVersion, '/package.json'),
+  const resolved: Record<string, string> = {}
+  const ranges = await resolvePackageDeps('antdv-next', antdvVersion)
+  await Promise.all(
+    Object.entries(ranges).map(async ([name, version]) => {
+      const staticPath = ROOT_STATIC_PATHS.get(name)
+      if (!staticPath) return // 不在静态树,无路径信息可覆盖
+      const staticVer = STATIC_SPEC_RE.exec(staticPath)?.[2]
+      if (version === staticVer) {
+        resolved[name] = version
+        return
+      }
+      const ok = await probeUrl(
+        `https://cdn.jsdelivr.net/npm${applyStaticOverride(staticPath, {
+          [name]: version,
+        })}`,
+      )
+      if (ok) resolved[name] = version
+    }),
+  )
+  ANTDV_DEPS_CACHE.set(antdvVersion, resolved)
+  return resolved
+}
+
+/**
+ * 解析 @antdv-next/x 指定版本的直接依赖(mermaid / prosemirror-* / shiki),
+ * 并从 shiki 版本推导 @shikijs/themes、@shikijs/langs 的同版本数据包。
+ * x-markdown / x-card 等不是 x 的依赖,不随 x 版本走。
+ */
+export const resolveXDeps = async (xVersion: string) => {
+  const cached = X_DEPS_CACHE.get(xVersion)
+  if (cached) return cached
+  const deps = await resolvePackageDeps('@antdv-next/x', xVersion)
+  const resolved: Record<string, string> = { ...deps }
+  const shikiVer = deps.shiki
+  if (shikiVer) {
+    // shiki 依赖树要求 @shikijs/* 与 shiki 同版本;任一缺失则整体回退静态版本
+    const ok = await Promise.all(
+      ['@shikijs/themes', '@shikijs/langs'].map((name) =>
+        fetchJson(
+          `https://data.jsdelivr.com/v1/package/resolve/npm/${name}@${shikiVer}`,
+        )
+          .then(() => true)
+          .catch(() => false),
+      ),
     )
-    const ranges = (pkg.dependencies ?? {}) as Record<string, string>
-    const resolved: Record<string, string> = {}
-    await Promise.all(
-      Object.entries(ranges).map(async ([name, range]) => {
-        if (typeof range !== 'string' || !/^[\^~]?\d/.test(range)) return
-        const staticPath = ROOT_STATIC_PATHS.get(name)
-        if (!staticPath) return // 不在静态树,无路径信息可覆盖
-        const staticVer = STATIC_SPEC_RE.exec(staticPath)?.[2]
-        try {
-          const { version } = await fetchJson(
-            `https://data.jsdelivr.com/v1/package/resolve/npm/${name}@${range}`,
-          )
-          if (!version || version === staticVer) {
-            resolved[name] = version
-            return
-          }
-          const ok = await probeUrl(
-            `https://cdn.jsdelivr.net/npm${applyStaticOverride(staticPath, {
-              [name]: version,
-            })}`,
-          )
-          if (ok) resolved[name] = version
-        } catch {
-          // 单个包解析失败,保留静态版本
-        }
-      }),
-    )
-    ANTDV_DEPS_CACHE.set(antdvVersion, resolved)
-    return resolved
-  } catch {
-    return {}
+    if (ok.every(Boolean)) {
+      resolved['@shikijs/themes'] = shikiVer
+      resolved['@shikijs/langs'] = shikiVer
+    } else {
+      delete resolved.shiki
+    }
   }
+  X_DEPS_CACHE.set(xVersion, resolved)
+  return resolved
 }
 
 /**
@@ -181,6 +234,7 @@ export const resolveAntdvDeps = async (antdvVersion: string) => {
  *
  * 版本跟随:静态树是生成时的快照,运行时按所选 antdv-next 版本重新解析其直接
  * 依赖(resolveAntdvDeps)并覆盖版本号;传递依赖叶子与子路径布局仍以静态树为准。
+ * x 的 mermaid/prosemirror/shiki 等直接依赖同理随所选 x 版本解析(resolveXDeps)。
  *
  * 已知限制:
  * - 覆盖仅针对静态树中已存在的根包;antdv-next 新版本引入的全新依赖不在树内,
@@ -188,11 +242,13 @@ export const resolveAntdvDeps = async (antdvVersion: string) => {
  * - 仅覆盖 antdv-next 运行时可达的裸导入;未映射的子路径导入(如
  *   `antdv-next/locale/fr_FR`)不支持。locale 对象只能由已映射的
  *   @v-c/pagination/locale、@v-c/picker/locale 的 en_US/zh_CN 拼装。
- * - x-markdown 的 marked/katex/dompurify 版本为手动固定,需随 x-markdown 发版手动更新。
+ * - x-markdown / x-card 及 marked/katex/dompurify 不是 x 的依赖,版本手动固定,
+ *   需随对应包发版手动更新。
  */
 export const genImportMap = (
   { vue, antdvNext, pro, x }: Partial<Versions> = {},
   deps: Record<string, string> = {},
+  xdeps: Record<string, string> = {},
 ): ImportMap => {
   const imports: Record<string, string> = {
     vue: genCdnLink(
@@ -249,6 +305,10 @@ export const genImportMap = (
     // 全部经 import map 与用户代码共享同一实例——config-provider 的主题(dark 模式/
     // 主色)在 x 组件上同样生效。es/antdv-next-x.esm.js 是内置 antdv-next 的单文件
     // bundle,其 config-provider context 与外部不共享,主题不会联动,故不再使用。
+    // 版本模板:直接依赖随所选 x 版本解析(resolveXDeps),缺失时回退固定版本。
+    const shikiVer = xdeps.shiki ?? '3.13.0'
+    const shikiThemesVer = xdeps['@shikijs/themes'] ?? shikiVer
+    const shikiLangsVer = xdeps['@shikijs/langs'] ?? shikiVer
     Object.assign(imports, {
       '@antdv-next/x': genCdnLink('@antdv-next/x', x, '/dist/index.js'),
       // x 的 theme/useToken 直接复用 antdv-next 内部模块(同源共享 context)
@@ -281,58 +341,58 @@ export const genImportMap = (
       // 映射为空模块占位,katex 样式由用户按需引入(如 <link> 或 index.html)
       'katex/dist/katex.min.css': 'data:text/javascript,export default {}',
       // mermaid(XMermaid 懒加载):esm.sh 构建,整个依赖树(roughjs/cytoscape/
-      // dagre-d3-es 等)重写为自包含 URL,无需逐个映射
-      'mermaid/dist/': 'https://esm.sh/mermaid@11.12.1/dist/',
-      // prosemirror(XSender 富文本):esm.sh 构建,依赖树自包含
-      'prosemirror-model': 'https://esm.sh/prosemirror-model@1.25.11',
-      'prosemirror-state': 'https://esm.sh/prosemirror-state@1.4.4',
-      'prosemirror-view': 'https://esm.sh/prosemirror-view@1.42.3',
-      'prosemirror-commands': 'https://esm.sh/prosemirror-commands@1.7.2',
-      'prosemirror-history': 'https://esm.sh/prosemirror-history@1.5.0',
-      'prosemirror-keymap': 'https://esm.sh/prosemirror-keymap@1.2.3',
+      // dagre-d3-es 等)重写为自包含 URL,无需逐个映射;版本随所选 x 版本解析
+      'mermaid/dist/': `https://esm.sh/mermaid@${xdeps.mermaid ?? '11.12.1'}/dist/`,
+      // prosemirror(XSender 富文本):esm.sh 构建,依赖树自包含;版本随所选 x 版本解析
+      'prosemirror-model': `https://esm.sh/prosemirror-model@${xdeps['prosemirror-model'] ?? '1.25.11'}`,
+      'prosemirror-state': `https://esm.sh/prosemirror-state@${xdeps['prosemirror-state'] ?? '1.4.4'}`,
+      'prosemirror-view': `https://esm.sh/prosemirror-view@${xdeps['prosemirror-view'] ?? '1.42.3'}`,
+      'prosemirror-commands': `https://esm.sh/prosemirror-commands@${xdeps['prosemirror-commands'] ?? '1.7.2'}`,
+      'prosemirror-history': `https://esm.sh/prosemirror-history@${xdeps['prosemirror-history'] ?? '1.5.0'}`,
+      'prosemirror-keymap': `https://esm.sh/prosemirror-keymap@${xdeps['prosemirror-keymap'] ?? '1.2.3'}`,
       // shiki(XCodeHighlighter):core/引擎走 esm.sh(依赖树自包含);
-      // 主题与内置语言是纯数据文件,直指 @shikijs 包内产物(随 cdn 设置切换)
-      'shiki/core': 'https://esm.sh/shiki@3.13.0/core',
-      'shiki/engine/javascript':
-        'https://esm.sh/shiki@3.13.0/engine/javascript',
+      // 主题与内置语言是纯数据文件,直指 @shikijs 包内产物(随 cdn 设置切换);
+      // shiki 与 @shikijs/* 版本随所选 x 版本解析,且保持同版本号
+      'shiki/core': `https://esm.sh/shiki@${shikiVer}/core`,
+      'shiki/engine/javascript': `https://esm.sh/shiki@${shikiVer}/engine/javascript`,
       'shiki/dist/themes/vitesse-dark.mjs': genCdnLink(
         '@shikijs/themes',
-        '3.13.0',
+        shikiThemesVer,
         '/dist/vitesse-dark.mjs',
       ),
       'shiki/dist/themes/vitesse-light.mjs': genCdnLink(
         '@shikijs/themes',
-        '3.13.0',
+        shikiThemesVer,
         '/dist/vitesse-light.mjs',
       ),
       'shiki/dist/langs/typescript.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/typescript.mjs',
       ),
       'shiki/dist/langs/javascript.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/javascript.mjs',
       ),
       'shiki/dist/langs/python.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/python.mjs',
       ),
       'shiki/dist/langs/json.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/json.mjs',
       ),
       'shiki/dist/langs/html.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/html.mjs',
       ),
       'shiki/dist/langs/css.mjs': genCdnLink(
         '@shikijs/langs',
-        '3.13.0',
+        shikiLangsVer,
         '/dist/css.mjs',
       ),
     })

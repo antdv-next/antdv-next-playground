@@ -13,6 +13,7 @@ import {
   genCompilerSfcLink,
   genImportMap,
   resolveAntdvDeps,
+  resolveXDeps,
 } from '@/utils/dependency'
 import { atou, utoa } from '@/utils/encode'
 import antdvNextCode from '../template/antdv-next.js?raw'
@@ -117,6 +118,12 @@ export const useStore = (initial: Initial) => {
     resolvedDeps.value = await resolveAntdvDeps(versions.antdvNext)
   }, 300)
   watch(() => versions.antdvNext, refreshDeps, { immediate: true })
+  // x 的 mermaid/prosemirror/shiki 直接依赖同理随所选 x 版本解析
+  const resolvedXDeps = shallowRef<Record<string, string>>({})
+  const refreshXDeps = useDebounceFn(async () => {
+    resolvedXDeps.value = await resolveXDeps(versions.x)
+  }, 300)
+  watch(() => versions.x, refreshXDeps, { immediate: true })
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
@@ -129,6 +136,7 @@ export const useStore = (initial: Initial) => {
         x: pr ? undefined : featureFlags.x ? versions.x : undefined,
       },
       resolvedDeps.value,
+      resolvedXDeps.value,
     )
     if (pr)
       importMap = mergeImportMap(importMap, {
