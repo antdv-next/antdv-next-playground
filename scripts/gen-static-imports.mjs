@@ -466,14 +466,48 @@ async function generate() {
         .replaceAll(': string[]', '')
       return new Function(`${js}; return { STATIC_IMPORTS, ESM_IMPORTS }`)()
     }
-    if (JSON.stringify(toValue(disk)) === JSON.stringify(toValue(body))) {
-      console.log(
-        `[gen-imports] OK:${OUT_FILE} 与 antdv-next@${antdvVer} 依赖树一致`,
+    const diskValue = toValue(disk)
+    const bodyValue = toValue(body)
+    // 版本号由运行时按所选版本解析(resolveAntdvDeps),生成树版本仅作回退值;
+    // 对比时剥掉路径值里的 @version,只校验结构(specifier 集合/路径/+esm 判定)。
+    const stripVersions = (imports) =>
+      Object.fromEntries(
+        Object.entries(imports).map(([spec, path]) => [
+          spec,
+          path.replace(/^\/((?:@[^/]+\/)?[^@/]+)@[^/]+(\/.*)?$/, '/$1$2'),
+        ]),
       )
+    const diskStruct = JSON.stringify({
+      imports: stripVersions(diskValue.STATIC_IMPORTS),
+      esm: diskValue.ESM_IMPORTS,
+    })
+    const bodyStruct = JSON.stringify({
+      imports: stripVersions(bodyValue.STATIC_IMPORTS),
+      esm: bodyValue.ESM_IMPORTS,
+    })
+    if (diskStruct === bodyStruct) {
+      const drifted = Object.keys(diskValue.STATIC_IMPORTS).filter(
+        (spec) =>
+          diskValue.STATIC_IMPORTS[spec] !== bodyValue.STATIC_IMPORTS[spec],
+      )
+      if (drifted.length) {
+        console.log(
+          `[gen-imports] OK:结构与 antdv-next@${antdvVer} 一致;${drifted.length} 个条目版本漂移` +
+            `(运行时按所选版本解析,如需刷新回退值请运行 pnpm gen:imports):`,
+        )
+        for (const spec of drifted.slice(0, 12))
+          console.log(
+            `[gen-imports]   ${spec}: ${diskValue.STATIC_IMPORTS[spec]} -> ${bodyValue.STATIC_IMPORTS[spec]}`,
+          )
+      } else {
+        console.log(
+          `[gen-imports] OK:${OUT_FILE} 与 antdv-next@${antdvVer} 依赖树结构一致`,
+        )
+      }
       return 0
     }
     console.error(
-      `[gen-imports] FAIL:${OUT_FILE} 过期,请运行 pnpm gen:imports 重新生成`,
+      `[gen-imports] FAIL:${OUT_FILE} 结构过期(specifier/路径/+esm 判定变化),请运行 pnpm gen:imports 重新生成`,
     )
     return 1
   }
