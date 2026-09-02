@@ -1,4 +1,4 @@
-import { gte } from 'semver'
+import { gte, lt } from 'semver'
 import { ESM_IMPORTS, STATIC_IMPORTS } from './static-imports'
 import type { Versions } from '@/composables/store'
 import type { ImportMap } from '@vue/repl'
@@ -435,7 +435,13 @@ export const getSupportedTSVersions = () => {
   const versions = getVersions('typescript')
   return computed(() =>
     versions.value.filter(
-      (version) => !version.includes('dev') && !version.includes('insiders'),
+      (version) =>
+        !version.includes('dev') &&
+        !version.includes('insiders') &&
+        !version.includes('beta') &&
+        !version.includes('rc') &&
+        gte(version, '5.0.0') &&
+        lt(version, '6.0.0'),
     ),
   )
 }

@@ -62,10 +62,17 @@ export const useStore = (initial: Initial) => {
     new URLSearchParams(location.search).get('vue') || saved?._o?.vuePr
   const vuePrUrl = `https://esm.sh/pr`
 
+  const sanitizeTsVersion = (v?: string) => {
+    if (!v || v === 'latest' || v.startsWith('7.') || v.startsWith('6.')) {
+      return '5.8.3'
+    }
+    return v
+  }
+
   const versions = reactive<Versions>({
     vue: saved?._o?.vueVersion ?? 'latest',
     antdvNext: pr ? 'preview' : (saved?._o?.antdvVersion ?? 'latest'),
-    typescript: saved?._o?.tsVersion ?? 'latest',
+    typescript: sanitizeTsVersion(saved?._o?.tsVersion),
     pro: saved?._o?.proVersion ?? 'latest',
     x: saved?._o?.xVersion ?? 'latest',
   })
@@ -83,7 +90,7 @@ export const useStore = (initial: Initial) => {
   }
   Object.assign(userOptions, {
     vueVersion: saved?._o?.vueVersion,
-    tsVersion: saved?._o?.tsVersion,
+    tsVersion: sanitizeTsVersion(saved?._o?.tsVersion),
     antdvVersion: saved?._o?.antdvVersion,
     proVersion: saved?._o?.proVersion,
     xVersion: saved?._o?.xVersion,
@@ -316,6 +323,7 @@ export const useStore = (initial: Initial) => {
         break
       case 'typescript':
         store.typescriptVersion = version
+        versions.typescript = version
         userOptions.tsVersion = version
         break
     }
@@ -347,6 +355,7 @@ export const useStore = (initial: Initial) => {
     setFeature,
   }
   Object.assign(store, utils)
+  init()
 
   return store as typeof store & typeof utils
 }
