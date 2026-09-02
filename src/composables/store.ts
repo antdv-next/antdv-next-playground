@@ -182,12 +182,13 @@ export const useStore = (initial: Initial) => {
   })
 
   watch(
-    () => [versions.antdvNext, versions.x, featureFlags.x],
+    () => [versions.antdvNext, versions.x, featureFlags.x, featureFlags.pro],
     () => {
       store.files[ANTDV_NEXT_FILE].code = generateAntdvNextCode(
         versions.antdvNext,
         userOptions.styleSource,
         pr ? undefined : featureFlags.x ? versions.x : undefined,
+        pr ? undefined : featureFlags.pro ? versions.pro : undefined,
       ).trim()
       originalCompileFile(store, store.files[ANTDV_NEXT_FILE]).then(
         (errs) => (store.errors = errs),
@@ -280,6 +281,7 @@ export const useStore = (initial: Initial) => {
           versions.antdvNext,
           userOptions.styleSource,
           pr ? undefined : featureFlags.x ? versions.x : undefined,
+          pr ? undefined : featureFlags.pro ? versions.pro : undefined,
         ),
       )
     }
@@ -353,6 +355,7 @@ function generateAntdvNextCode(
   version: string,
   styleSource?: string,
   xVersion?: string,
+  proVersion?: string,
 ) {
   const style = styleSource
     ? styleSource.replace('#VERSION#', version)
@@ -361,11 +364,17 @@ function generateAntdvNextCode(
   // X 开启时全局注册,沙箱内可直接用文档同款 <ax-welcome> 等组件(组件 name 为 Ax*)
   const xImport = xVersion ? `import AntdvX from '@antdv-next/x'` : ''
   const xSetup = xVersion ? `  instance.appContext.app.use(AntdvX)` : ''
+  // Pro 开启时全局注册:主入口 install 会 app.use 各组件(ProConfigProvider、AScrollbar),
+  // 沙箱内可直接用 <a-scrollbar> 等组件
+  const proImport = proVersion ? `import AntdvPro from '@antdv-next/pro'` : ''
+  const proSetup = proVersion ? `  instance.appContext.app.use(AntdvPro)` : ''
   return antdvNextCode
     .replace('#STYLE#', style)
     .replace('#RESETSTYLE#', resetStyle)
     .replace('#X_IMPORT#', xImport)
     .replace('#X_SETUP#', xSetup)
+    .replace('#PRO_IMPORT#', proImport)
+    .replace('#PRO_SETUP#', proSetup)
 }
 
 function useWorker(pr: string) {
