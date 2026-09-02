@@ -10,8 +10,8 @@ export function setupAntdvNext() {
   if (installed) return
   const instance = getCurrentInstance()
   instance.appContext.app.use(Antd)
-#X_SETUP#
-#PRO_SETUP#
+  #X_SETUP#
+  #PRO_SETUP#
   installed = true
 }
 
