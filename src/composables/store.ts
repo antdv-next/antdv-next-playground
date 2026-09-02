@@ -12,6 +12,8 @@ import {
   genCdnLink,
   genCompilerSfcLink,
   genImportMap,
+  resolveAntdvDeps,
+  resolveXDeps,
 } from '@/utils/dependency'
 import { atou, utoa } from '@/utils/encode'
 import antdvNextCode from '../template/antdv-next.js?raw'
@@ -23,7 +25,7 @@ export interface Initial {
   serializedState?: string
   initialized?: () => void
 }
-export type VersionKey = 'vue' | 'antdvNext' | 'typescript'
+export type VersionKey = 'vue' | 'antdvNext' | 'typescript' | 'pro' | 'x'
 export type Versions = Record<VersionKey, string>
 export interface UserOptions {
   styleSource?: string
@@ -31,6 +33,10 @@ export interface UserOptions {
   vueVersion?: string
   tsVersion?: string
   antdvVersion?: string
+  proVersion?: string
+  xVersion?: string
+  proEnabled?: boolean
+  xEnabled?: boolean
   vuePr?: string
 }
 export type SerializeState = Record<string, string> & {
@@ -56,10 +62,19 @@ export const useStore = (initial: Initial) => {
     new URLSearchParams(location.search).get('vue') || saved?._o?.vuePr
   const vuePrUrl = `https://esm.sh/pr`
 
+  const sanitizeTsVersion = (v?: string) => {
+    if (!v || v === 'latest' || v.startsWith('7.') || v.startsWith('6.')) {
+      return '5.8.3'
+    }
+    return v
+  }
+
   const versions = reactive<Versions>({
     vue: saved?._o?.vueVersion ?? 'latest',
     antdvNext: pr ? 'preview' : (saved?._o?.antdvVersion ?? 'latest'),
-    typescript: saved?._o?.tsVersion ?? 'latest',
+    typescript: sanitizeTsVersion(saved?._o?.tsVersion),
+    pro: saved?._o?.proVersion ?? 'latest',
+    x: saved?._o?.xVersion ?? 'latest',
   })
   const userOptions: UserOptions = {}
   if (pr) {
@@ -75,14 +90,61 @@ export const useStore = (initial: Initial) => {
   }
   Object.assign(userOptions, {
     vueVersion: saved?._o?.vueVersion,
-    tsVersion: saved?._o?.tsVersion,
+    tsVersion: sanitizeTsVersion(saved?._o?.tsVersion),
     antdvVersion: saved?._o?.antdvVersion,
+    proVersion: saved?._o?.proVersion,
+    xVersion: saved?._o?.xVersion,
+    proEnabled: saved?._o?.proEnabled,
+    xEnabled: saved?._o?.xEnabled,
   })
+  // 是否把 pro / x 依赖写入 import map。
+  // 默认关闭;可通过 URL 参数 ?pro=1 / ?x=1 开启(docs 页链接玩法);
+  // 用户显式切换后由 _o.proEnabled / _o.xEnabled 记录,优先于参数。
+  const queryParams = new URLSearchParams(location.search)
+  const paramFlag = (name: string, fallback: boolean) => {
+    const raw = queryParams.get(name)
+    if (raw === null) return fallback
+    return !['0', 'false', 'no', 'off'].includes(raw.toLowerCase())
+  }
+  const featureFlags = reactive({
+    pro: saved?._o?.proEnabled ?? paramFlag('pro', false),
+    x: saved?._o?.xEnabled ?? paramFlag('x', false),
+  })
+  watch(
+    () => featureFlags.pro,
+    (v) => (userOptions.proEnabled = v),
+  )
+  watch(
+    () => featureFlags.x,
+    (v) => (userOptions.xEnabled = v),
+  )
+  // 按所选 antdv-next 版本解析其直接依赖的精确版本,覆盖静态树快照;
+  // 解析期间(或失败时)保持静态树,import map 不闪断
+  const resolvedDeps = shallowRef<Record<string, string>>({})
+  const refreshDeps = useDebounceFn(async () => {
+    resolvedDeps.value = await resolveAntdvDeps(versions.antdvNext)
+  }, 300)
+  watch(() => versions.antdvNext, refreshDeps, { immediate: true })
+  // x 的 mermaid/prosemirror/shiki 直接依赖同理随所选 x 版本解析
+  const resolvedXDeps = shallowRef<Record<string, string>>({})
+  const refreshXDeps = useDebounceFn(async () => {
+    resolvedXDeps.value = await resolveXDeps(versions.x)
+  }, 300)
+  watch(() => versions.x, refreshXDeps, { immediate: true })
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
   const builtinImportMap = computed<ImportMap>(() => {
-    let importMap = genImportMap(versions)
+    // PR 预览模式下 antdv-next 来自 PR 构建，pro/x 的 ?deps= 无法解析 preview 版本，禁用
+    let importMap = genImportMap(
+      {
+        ...versions,
+        pro: pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+        x: pr ? undefined : featureFlags.x ? versions.x : undefined,
+      },
+      resolvedDeps.value,
+      resolvedXDeps.value,
+    )
     if (pr)
       importMap = mergeImportMap(importMap, {
         imports: {
@@ -127,21 +189,37 @@ export const useStore = (initial: Initial) => {
   })
 
   watch(
-    () => versions.antdvNext,
-    (version) => {
+    () => [versions.antdvNext, versions.x, featureFlags.x, featureFlags.pro],
+    () => {
       store.files[ANTDV_NEXT_FILE].code = generateAntdvNextCode(
-        version,
+        versions.antdvNext,
         userOptions.styleSource,
+        pr ? undefined : featureFlags.x ? versions.x : undefined,
+        pr ? undefined : featureFlags.pro ? versions.pro : undefined,
       ).trim()
       originalCompileFile(store, store.files[ANTDV_NEXT_FILE]).then(
         (errs) => (store.errors = errs),
       )
     },
   )
+  // 记录生效中的 builtin map;首次变更即可对比移除消失的托管键
+  let prevBuiltinImportMap: ImportMap = builtinImportMap.value
   watch(
     builtinImportMap,
     (newBuiltinImportMap) => {
       const importMap = JSON.parse(store.files[IMPORT_MAP].code)
+      // 关闭 pro / x(或 CDN 切换使某键消失)时,移除已从 builtin 消失的托管键,
+      // 避免 import map 残留旧条目仍被沙箱解析
+      if (prevBuiltinImportMap) {
+        const prevImports = prevBuiltinImportMap.imports ?? {}
+        const newImports = newBuiltinImportMap.imports ?? {}
+        for (const key of Object.keys(prevImports)) {
+          if (!(key in newImports)) {
+            delete importMap.imports?.[key]
+          }
+        }
+      }
+      prevBuiltinImportMap = newBuiltinImportMap
       store.files[IMPORT_MAP].code = JSON.stringify(
         mergeImportMap(importMap, newBuiltinImportMap),
         undefined,
@@ -206,7 +284,12 @@ export const useStore = (initial: Initial) => {
     if (!files[ANTDV_NEXT_FILE]) {
       files[ANTDV_NEXT_FILE] = new File(
         ANTDV_NEXT_FILE,
-        generateAntdvNextCode(versions.antdvNext, userOptions.styleSource),
+        generateAntdvNextCode(
+          versions.antdvNext,
+          userOptions.styleSource,
+          pr ? undefined : featureFlags.x ? versions.x : undefined,
+          pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+        ),
       )
     }
     if (!files[TSCONFIG]) {
@@ -230,8 +313,17 @@ export const useStore = (initial: Initial) => {
         versions.antdvNext = version
         userOptions.antdvVersion = version
         break
+      case 'pro':
+        versions.pro = version
+        userOptions.proVersion = version
+        break
+      case 'x':
+        versions.x = version
+        userOptions.xVersion = version
+        break
       case 'typescript':
         store.typescriptVersion = version
+        versions.typescript = version
         userOptions.tsVersion = version
         break
     }
@@ -248,6 +340,9 @@ export const useStore = (initial: Initial) => {
     addFile(appFile)
   }
 
+  const setFeature = (key: keyof typeof featureFlags, enabled: boolean) => {
+    featureFlags[key] = enabled
+  }
   const utils = {
     versions,
     pr,
@@ -256,20 +351,39 @@ export const useStore = (initial: Initial) => {
     init,
     vuePr,
     resetFiles,
+    featureFlags,
+    setFeature,
   }
   Object.assign(store, utils)
+  init()
 
   return store as typeof store & typeof utils
 }
 
-function generateAntdvNextCode(version: string, styleSource?: string) {
+function generateAntdvNextCode(
+  version: string,
+  styleSource?: string,
+  xVersion?: string,
+  proVersion?: string,
+) {
   const style = styleSource
     ? styleSource.replace('#VERSION#', version)
     : genCdnLink('antdv-next', version, '/dist/antd.css')
   const resetStyle = genCdnLink('antdv-next', version, '/dist/reset.css')
+  // X 开启时全局注册,沙箱内可直接用文档同款 <ax-welcome> 等组件(组件 name 为 Ax*)
+  const xImport = xVersion ? `import AntdvX from '@antdv-next/x'` : ''
+  const xSetup = xVersion ? `  instance.appContext.app.use(AntdvX)` : ''
+  // Pro 开启时全局注册:主入口 install 会 app.use 各组件(ProConfigProvider、AScrollbar),
+  // 沙箱内可直接用 <a-scrollbar> 等组件
+  const proImport = proVersion ? `import AntdvPro from '@antdv-next/pro'` : ''
+  const proSetup = proVersion ? `  instance.appContext.app.use(AntdvPro)` : ''
   return antdvNextCode
     .replace('#STYLE#', style)
     .replace('#RESETSTYLE#', resetStyle)
+    .replace('#X_IMPORT#', xImport)
+    .replace('#X_SETUP#', xSetup)
+    .replace('#PRO_IMPORT#', proImport)
+    .replace('#PRO_SETUP#', proSetup)
 }
 
 function useWorker(pr: string) {

@@ -25,6 +25,10 @@ const autoSave = ref(getAutoSaveState())
 const previewOptions = {
   showRuntimeError: false,
   headHTML: `
+    <script>
+      // CDN 原始 ESM 产物(bundler-target)引用 process.env.NODE_ENV,需全局垫片
+      window.process = { env: { NODE_ENV: 'production' } }
+    <\/script>
     <script src="https://cdn.jsdelivr.net/npm/@unocss/runtime"><\/script>
     <script>
       window.__unocss = {
@@ -131,7 +135,8 @@ watchEffect(() => {
   history.replaceState(
     {},
     '',
-    `${location.origin}${location.pathname}#${serialized}`,
+    // 保留 query(?pro=1 / ?x=1 等),否则参数在首次序列化后丢失,刷新即失效
+    `${location.origin}${location.pathname}${location.search}#${serialized}`,
   )
   clearLogs()
 })

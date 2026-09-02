@@ -33,6 +33,17 @@ Uncaught SyntaxError: The requested module 'vue' does not provide an export name
 
 > antdv-next 自身源码没有直接使用此 API，是间接依赖引入的。如果上游移除了该依赖，可放宽版本限制。
 
+### URL 参数（Pro / X）
+
+Pro 和 X **默认关闭**——它们的依赖不会引入沙箱。可以通过设置对话框开启，也可以通过 URL 参数开启，方便 docs/示例页面直接深链：
+
+- `?pro=1` — 开启 Pro（`@antdv-next/pro`）
+- `?x=1` — 开启 X（`@antdv-next/x`）
+- `?pro=1&x=1` — 同时开启
+- `0` / `false` / `no` / `off` 显式关闭（如 `?x=0`）
+
+参数在刷新后保留。一旦在界面上手动切换过，选择会写入可分享链接并优先于参数。
+
 ### Antdv Next >= 1.0.4
 
 antdv-next 版本选择器限制为 **>= 1.0.4**。

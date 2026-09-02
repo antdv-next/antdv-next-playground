@@ -21,7 +21,9 @@
     "lint": "eslint --cache --max-warnings 0 .",
     "lint:fix": "pnpm run lint --fix",
     "typecheck": "vue-tsc --noEmit",
-    "format": "prettier --write --cache . --experimental-cli"
+    "format": "prettier --write --cache . --experimental-cli",
+    "gen:imports": "node scripts/gen-static-imports.mjs",
+    "verify:imports": "node scripts/gen-static-imports.mjs --check"
   },
   "dependencies": {
     "@unocss/reset": "^66.5.9",
