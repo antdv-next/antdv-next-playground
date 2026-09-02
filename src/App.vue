@@ -152,12 +152,29 @@ watch(autoSave, setAutoSaveState)
 <template>
   <a-config-provider :theme="themeConfig">
     <div v-if="!loading" antialiased>
-      <Header :store="store" :show-console="showConsole" @refresh="refreshPreview"
-        @toggle-console="showConsole = !showConsole" />
-      <Repl ref="replRef" v-model="autoSave" :theme="dark ? 'dark' : 'light'" :preview-theme="true" :store="store"
-        :editor="Monaco" :preview-options="previewOptions" @keydown="handleKeydown" />
+      <Header
+        :store="store"
+        :show-console="showConsole"
+        @refresh="refreshPreview"
+        @toggle-console="showConsole = !showConsole"
+      />
+      <Repl
+        ref="replRef"
+        v-model="autoSave"
+        :theme="dark ? 'dark' : 'light'"
+        :preview-theme="true"
+        :store="store"
+        :editor="Monaco"
+        :preview-options="previewOptions"
+        @keydown="handleKeydown"
+      />
       <Teleport defer to=".vue-repl .right">
-        <ConsolePanel v-if="showConsole" v-model:height="consoleHeight" :logs="logs" @clear="clearLogs" />
+        <ConsolePanel
+          v-if="showConsole"
+          v-model:height="consoleHeight"
+          :logs="logs"
+          @clear="clearLogs"
+        />
       </Teleport>
     </div>
     <template v-else>
@@ -187,11 +204,11 @@ body {
   flex-direction: column !important;
 }
 
-.vue-repl .right>.tab-buttons {
+.vue-repl .right > .tab-buttons {
   flex-shrink: 0;
 }
 
-.vue-repl .right>.output-container {
+.vue-repl .right > .output-container {
   flex: 1;
   height: auto !important;
   min-height: 0;

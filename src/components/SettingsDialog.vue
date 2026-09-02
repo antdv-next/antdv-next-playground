@@ -94,7 +94,7 @@ async function setVersion(key: VersionKey, v: string) {
         v-for="(v, key) of versions"
         :key="key"
         mb-3
-        flex="~ gap-2"
+        flex="~ gap-4"
         items-center
       >
         <span flex="~ gap-1" w-110px shrink-0 items-center>
@@ -110,16 +110,6 @@ async function setVersion(key: VersionKey, v: string) {
             />
           </a-tooltip>
         </span>
-        <a-switch
-          v-if="v.toggleKey"
-          :checked="toggles[v.toggleKey].value"
-          size="small"
-          :disabled="!!store.pr"
-          :title="store.pr ? 'PR preview mode disables Pro/X' : undefined"
-          @update:checked="
-            (checked) => (toggles[v.toggleKey!].value = !!checked)
-          "
-        />
         <a-select
           :value="v.active"
           show-search
@@ -130,6 +120,16 @@ async function setVersion(key: VersionKey, v: string) {
             v.published.map((ver: string) => ({ label: ver, value: ver }))
           "
           @change="setVersion(key, $event as string)"
+        />
+        <a-switch
+          v-if="v.toggleKey"
+          :checked="toggles[v.toggleKey].value"
+          size="small"
+          :disabled="!!store.pr"
+          :title="store.pr ? 'PR preview mode disables Pro/X' : undefined"
+          @update:checked="
+            (checked) => (toggles[v.toggleKey!].value = !!checked)
+          "
         />
       </div>
     </a-form>
