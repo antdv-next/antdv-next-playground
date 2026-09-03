@@ -11,12 +11,14 @@ export interface Dependency {
   path: string
 }
 
-export type Cdn = 'unpkg' | 'jsdelivr' | 'jsdelivr-fastly'
-export const cdn = useLocalStorage<Cdn>('setting-cdn', 'jsdelivr')
+export type Cdn = 'unpkg' | 'jsdelivr' | 'jsdelivr-fastly' | 'jsdelivr-jsdmirror' | 'jsdelivr-gcore'
+export const cdn = useLocalStorage<Cdn>('setting-cdn', 'jsdelivr-jsdmirror')
 
 const STATIC_CDN_HOST: Record<Cdn, string> = {
   jsdelivr: 'cdn.jsdelivr.net',
   'jsdelivr-fastly': 'fastly.jsdelivr.net',
+  'jsdelivr-jsdmirror': 'cdn.jsdmirror.com',
+  'jsdelivr-gcore': 'gcore.jsdelivr.net',
   unpkg: 'unpkg.com',
 }
 
@@ -31,6 +33,10 @@ export const genCdnLink = (
       return `https://cdn.jsdelivr.net/npm/${pkg}${version}${path}`
     case 'jsdelivr-fastly':
       return `https://fastly.jsdelivr.net/npm/${pkg}${version}${path}`
+    case 'jsdelivr-jsdmirror':
+      return `https://cdn.jsdmirror.com/npm/${pkg}${version}${path}`
+    case 'jsdelivr-gcore':
+      return `https://gcore.jsdelivr.net/npm/${pkg}${version}${path}`
     case 'unpkg':
       return `https://unpkg.com/${pkg}${version}${path}`
   }

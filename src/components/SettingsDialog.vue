@@ -18,6 +18,8 @@ const open = defineModel<boolean>('open', { default: false })
 const cdnOptions = [
   { label: 'jsDelivr', value: 'jsdelivr' },
   { label: 'jsDelivr Fastly', value: 'jsdelivr-fastly' },
+  { label: 'JSDMirror (国内镜像)', value: 'jsdelivr-jsdmirror' },
+  { label: 'Gcore', value: 'jsdelivr-gcore' },
   { label: 'unpkg', value: 'unpkg' },
 ]
 
