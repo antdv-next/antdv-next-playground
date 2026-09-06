@@ -1,4 +1,4 @@
-import { gte, lt } from 'semver'
+import { gte, valid } from 'semver'
 import { ESM_IMPORTS, STATIC_IMPORTS } from './static-imports'
 import type { Versions } from '@/composables/store'
 import type { ImportMap } from '@vue/repl'
@@ -11,7 +11,12 @@ export interface Dependency {
   path: string
 }
 
-export type Cdn = 'unpkg' | 'jsdelivr' | 'jsdelivr-fastly' | 'jsdelivr-jsdmirror' | 'jsdelivr-gcore'
+export type Cdn =
+  | 'unpkg'
+  | 'jsdelivr'
+  | 'jsdelivr-fastly'
+  | 'jsdelivr-jsdmirror'
+  | 'jsdelivr-gcore'
 export const cdn = useLocalStorage<Cdn>('setting-cdn', 'jsdelivr-jsdmirror')
 
 const STATIC_CDN_HOST: Record<Cdn, string> = {
@@ -437,6 +442,25 @@ export const getSupportedVueVersions = () => {
   )
 }
 
+/**
+ * 沙箱 worker 按版本从 CDN 拉取 `lib/typescript.js` 做类型检查(@vue/repl 硬编码该路径)。
+ * TypeScript 7 起改为 Go 原生移植版,包内不再有 lib/typescript.js,7.x 无法加载,一律禁用;
+ * 6.x 仍是 JS 构建,可正常加载,允许选到 6.x 最新稳定版。
+ */
+const TS_FALLBACK_VERSION = '6.0.3'
+
+/** 7.x 无法被 worker 加载,下拉中禁用、持久化值回退 */
+export const isBlockedTsVersion = (version: string) => gte(version, '7.0.0')
+
+/** 清洗持久化/URL 里的 TS 版本:'latest' 已解析到 7.x,连同 7.x/预发布/非法值一并回退 6.0.3 */
+export const sanitizeTsVersion = (v?: string) => {
+  const parsed = v ? valid(v) : null
+  if (!parsed || parsed.includes('-') || isBlockedTsVersion(parsed)) {
+    return TS_FALLBACK_VERSION
+  }
+  return parsed
+}
+
 export const getSupportedTSVersions = () => {
   const versions = getVersions('typescript')
   return computed(() =>
@@ -446,8 +470,7 @@ export const getSupportedTSVersions = () => {
         !version.includes('insiders') &&
         !version.includes('beta') &&
         !version.includes('rc') &&
-        gte(version, '5.0.0') &&
-        lt(version, '6.0.0'),
+        gte(version, '5.0.0'),
     ),
   )
 }

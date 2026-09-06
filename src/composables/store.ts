@@ -14,6 +14,7 @@ import {
   genImportMap,
   resolveAntdvDeps,
   resolveXDeps,
+  sanitizeTsVersion,
 } from '@/utils/dependency'
 import { atou, utoa } from '@/utils/encode'
 import antdvNextCode from '../template/antdv-next.js?raw'
@@ -61,13 +62,6 @@ export const useStore = (initial: Initial) => {
   const vuePr =
     new URLSearchParams(location.search).get('vue') || saved?._o?.vuePr
   const vuePrUrl = `https://esm.sh/pr`
-
-  const sanitizeTsVersion = (v?: string) => {
-    if (!v || v === 'latest' || v.startsWith('7.') || v.startsWith('6.')) {
-      return '5.8.3'
-    }
-    return v
-  }
 
   const versions = reactive<Versions>({
     vue: saved?._o?.vueVersion ?? 'latest',
@@ -355,7 +349,6 @@ export const useStore = (initial: Initial) => {
     setFeature,
   }
   Object.assign(store, utils)
-  init()
 
   return store as typeof store & typeof utils
 }
