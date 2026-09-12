@@ -6,6 +6,7 @@ import {
   getSupportedTSVersions,
   getSupportedVueVersions,
   getSupportedXVersions,
+  isBlockedTsVersion,
 } from '@/utils/dependency'
 import type { Store, VersionKey } from '@/composables/store'
 import type { Ref } from 'vue'
@@ -48,6 +49,7 @@ const versions = reactive<Record<VersionKey, Version>>({
     text: 'TypeScript',
     published: getSupportedTSVersions(),
     active: props.store.versions.typescript,
+    hint: '7.x is a Go-native port; the sandbox worker cannot load it',
   },
   pro: {
     text: 'Pro',
@@ -75,7 +77,6 @@ const toggles: Record<'pro' | 'x', WritableComputedRef<boolean>> = {
     set: (v: boolean) => props.store.setFeature('x', v),
   }),
 }
-
 async function setVersion(key: VersionKey, v: string) {
   versions[key].active = `loading...`
   await props.store.setVersion(key, v)
@@ -116,10 +117,13 @@ async function setVersion(key: VersionKey, v: string) {
           :value="v.active"
           show-search
           size="small"
-          style="width: 180px"
-          :disabled="v.toggleKey ? !toggles[v.toggleKey].value : false"
+          style="width: 240px"
           :options="
-            v.published.map((ver: string) => ({ label: ver, value: ver }))
+            v.published.map((ver) => ({
+              label: ver,
+              value: ver,
+              disabled: key === 'typescript' && isBlockedTsVersion(ver),
+            }))
           "
           @change="setVersion(key, $event as string)"
         />
