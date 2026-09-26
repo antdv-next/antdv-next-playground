@@ -1,4 +1,7 @@
 // 自动生成:node scripts/gen-static-imports.mjs 1.5.3(2026-09-01),勿手改
+// ⚠️ 已冻结:自 resolver 默认切到 esm.sh 后,本文件仅供 ?resolver=legacy 回退模式使用,
+//    不再由 gen-static-imports.mjs 重新生成(生成器改为输出 esm-packages.ts)。
+//    手工补丁:补充 dayjs/plugin/*.js 带后缀拼写(@v-c/picker@1.5.0 起),legacy 模式同样免疫。
 // antdv-next@1.5.3 依赖树(共 104 个 specifier)的运行时可达裸导入枚举:
 //   - 来源:从 genImportMap 暴露的 antdv-next 入口沿模块图 BFS,子路径经 exports map(import 条件)解析
 //   - 规则:有浏览器可用 ESM 构建的用原始文件 URL(经 import map 统一 vue 实例);
@@ -110,12 +113,20 @@ export const STATIC_IMPORTS: Record<string, string> = {
   'compute-scroll-into-view': '/compute-scroll-into-view@3.1.1/dist/index.js',
   dayjs: '/dayjs@1.11.23/+esm',
   'dayjs/plugin/advancedFormat': '/dayjs@1.11.23/plugin/advancedFormat/+esm',
+  'dayjs/plugin/advancedFormat.js':
+    '/dayjs@1.11.23/plugin/advancedFormat.js/+esm',
   'dayjs/plugin/customParseFormat':
     '/dayjs@1.11.23/plugin/customParseFormat/+esm',
+  'dayjs/plugin/customParseFormat.js':
+    '/dayjs@1.11.23/plugin/customParseFormat.js/+esm',
   'dayjs/plugin/localeData': '/dayjs@1.11.23/plugin/localeData/+esm',
+  'dayjs/plugin/localeData.js': '/dayjs@1.11.23/plugin/localeData.js/+esm',
   'dayjs/plugin/weekOfYear': '/dayjs@1.11.23/plugin/weekOfYear/+esm',
+  'dayjs/plugin/weekOfYear.js': '/dayjs@1.11.23/plugin/weekOfYear.js/+esm',
   'dayjs/plugin/weekYear': '/dayjs@1.11.23/plugin/weekYear/+esm',
+  'dayjs/plugin/weekYear.js': '/dayjs@1.11.23/plugin/weekYear.js/+esm',
   'dayjs/plugin/weekday': '/dayjs@1.11.23/plugin/weekday/+esm',
+  'dayjs/plugin/weekday.js': '/dayjs@1.11.23/plugin/weekday.js/+esm',
   'es-toolkit': '/es-toolkit@1.50.0/dist/index.mjs',
   'es-toolkit/compat': '/es-toolkit@1.50.0/dist/compat/index.mjs',
   'resize-observer-polyfill':
@@ -132,9 +143,15 @@ export const ESM_IMPORTS: string[] = [
   '@ant-design/fast-color',
   'dayjs',
   'dayjs/plugin/advancedFormat',
+  'dayjs/plugin/advancedFormat.js',
   'dayjs/plugin/customParseFormat',
+  'dayjs/plugin/customParseFormat.js',
   'dayjs/plugin/localeData',
+  'dayjs/plugin/localeData.js',
   'dayjs/plugin/weekOfYear',
+  'dayjs/plugin/weekOfYear.js',
   'dayjs/plugin/weekYear',
+  'dayjs/plugin/weekYear.js',
   'dayjs/plugin/weekday',
+  'dayjs/plugin/weekday.js',
 ]
