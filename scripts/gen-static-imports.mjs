@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * 生成 src/utils/static-imports.ts —— antdv-next 依赖树裸导入枚举。
+ * 生成 src/utils/esm-packages.ts —— antdv-next 依赖树的 esm.sh 托管清单。
+ * (legacy 回退模式用的 static-imports.ts 已冻结,本脚本不再生成。)
  *
  * 用法:
  *   node scripts/gen-static-imports.mjs [version]   # 生成(默认 antdv-next latest)
@@ -10,11 +11,15 @@
  *   Phase 1 版本解析:antdv-next 的直接依赖 range 优先(与 npm 提升语义一致),
  *     嵌套依赖按 BFS 先声明者优先解析。
  *   Phase 2 可达性 BFS:从 genImportMap 暴露的 antdv-next 入口(dist/index.js 等)
- *     沿相对导入 + 裸导入遍历整个运行时模块图;只有可达文件的导入才进 map,
+ *     沿相对导入 + 裸导入遍历整个运行时模块图;只有可达文件的导入才进清单,
  *     天然排除 server-only(es-toolkit/dist/server)与可选生成器(picker generate/*)。
- *   Phase 3 路径解析:裸导入经 exports map(import 条件优先)解析,无 exports 时
- *     回退 module/main,再尝试 .js/.mjs/index.js 补全;有浏览器 ESM 构建的用
- *     原始文件 URL(经 import map 统一 vue 实例),否则退化为 jsdelivr +esm。
+ *   Phase 3 分类输出:
+ *     - Tier2(ESM_PACKAGES):会经裸导入引用共享单例(vue/@antdv-next/cssinjs/antdv-next)
+ *       的包(默认分类),由 esm.sh ?external= 服务,根 + 公开子路径显式登记;
+ *     - Tier3(LEAF_PACKAGES):不引用共享单例的叶子包(显式清单 LEAF_PACKAGE_SET),
+ *       import map 只登记根 + 尾斜杠前缀 key,子路径任意拼写由 esm.sh 运行时解析;
+ *     - Tier1 补充(RAW_PACKAGES):@antdv-next/icons 走 raw 单文件 bundle
+ *       (modular 入口会逐文件请求 852 个图标,不可交给 esm.sh exports 主入口)。
  *
  * 依赖:Node >= 20(global fetch)、系统 tar。无第三方包。
  */
@@ -33,11 +38,31 @@ import { basename, dirname, join } from 'node:path'
 import process from 'node:process'
 
 const ANTDV = 'antdv-next'
-const OUT_FILE = new URL('../src/utils/static-imports.ts', import.meta.url)
+const OUT_FILE = new URL('../src/utils/esm-packages.ts', import.meta.url)
   .pathname
 
-// genImportMap 动态处理的根,不进入静态 map(vue 实例统一由 import map 控制)
+// genImportMap 动态处理的根,不进入 esm 清单(vue 实例统一由 import map 控制)
 const SKIP_ROOTS = new Set(['vue', '@vue/shared', 'antdv-next'])
+
+// Tier3 叶子包显式清单:依赖闭包不含 vue/@antdv-next/cssinjs/antdv-next,
+// import map 用「根 + 尾斜杠前缀」两条 key 覆盖其任意子路径拼写,无需枚举。
+// 未在清单内的新依赖默认落 Tier2(esm.sh ?external=,对无共享单例的包同样安全);
+// 确认是纯叶子后可挪进本清单换取前缀免疫。
+const LEAF_PACKAGE_SET = new Set([
+  '@ant-design/colors',
+  '@ant-design/fast-color',
+  '@emotion/hash',
+  '@emotion/unitless',
+  '@v-c/async-validator',
+  '@v-c/mini-decimal',
+  'compute-scroll-into-view',
+  'dayjs',
+  'es-toolkit',
+  'resize-observer-polyfill',
+  'scroll-into-view-if-needed',
+  'stylis',
+  'throttle-debounce',
+])
 
 // 与 genImportMap 中 antdv-next 子路径保持一致的运行时入口(可达性 BFS 起点)
 const ANTDV_SEEDS = [
@@ -308,15 +333,6 @@ const resolveSpecFile = (root, pkgJson, norm, files) => {
   )
 }
 
-const isEsmFile = (pkgJson, dir, file) => {
-  if (file.endsWith('.mjs')) return true
-  if (pkgJson.type === 'module' && !file.endsWith('.cjs')) return true
-  const src = readFileSync(join(dir, file), 'utf8')
-    .replaceAll(/\/\*[\s\S]*?\*\//g, ' ')
-    .replaceAll(/^[ \t]*\/\/.*$/gm, '')
-  return /(?:^|\n)[ \t]*(?:import|export)\b/m.test(src)
-}
-
 /* ---------------- 主流程 ---------------- */
 
 async function generate() {
@@ -361,9 +377,6 @@ async function generate() {
   // ---- Phase 2:可达性 BFS(从 antdv 运行时入口出发,只收可达文件的导入) ----
   const visited = new Set()
   const specifiers = new Map() // spec -> { root, subpath, file }
-  // 相对导入无扩展名(如 dayjs esm 的 './constant')浏览器无法加载,
-  // 这类包整体退化 +esm(esm.run 负责补全)
-  const extensionless = new Set()
   const bfs = ANTDV_SEEDS.map((f) => [ANTDV, antdvVer, f])
   while (bfs.length) {
     const [pkg, ver, file] = bfs.shift()
@@ -379,7 +392,6 @@ async function generate() {
     const src = readFileSync(abs, 'utf8')
     for (const spec of scanImports(src)) {
       if (spec.startsWith('.')) {
-        if (!/\.[a-z]+$/i.test(spec)) extensionless.add(pkg)
         const hit = resolveRel(pkgDir, file, spec)
         if (hit) bfs.push([pkg, ver, hit])
         else warn(`相对导入无法解析:${vkey} -> "${spec}"`)
@@ -415,43 +427,61 @@ async function generate() {
     `[gen-imports] 可达文件: ${visited.size},specifier: ${specifiers.size}`,
   )
 
-  // ---- Phase 3:输出 ----
-  const entries = new Map() // spec -> { path, esm? }
-  const esmSpecs = []
-  for (const [spec, { root, subpath, file }] of specifiers) {
+  // ---- Phase 3:分类输出 esm-packages.ts ----
+  const esmPackages = new Map() // pkg -> { v, sub: Set }
+  const leafPackages = new Map() // pkg -> version
+  const rawPackages = new Map() // pkg -> { v, path }
+  for (const [, { root, subpath, file }] of specifiers) {
     const ver = pkgVersions.get(root)
-    const { pkgJson, dir } = pkgJsonCache.get(`${root}@${ver}`)
-    if (!extensionless.has(root) && isEsmFile(pkgJson, dir, file)) {
-      entries.set(spec, { path: `/${root}@${ver}/${file}` })
-    } else {
-      const suffix = subpath ? `/${subpath}` : ''
-      entries.set(spec, { path: `/${root}@${ver}${suffix}/+esm`, esm: true })
-      esmSpecs.push(spec)
+    if (root === '@antdv-next/icons') {
+      rawPackages.set(root, { v: ver, path: `/${file}` })
+      continue
     }
+    if (LEAF_PACKAGE_SET.has(root)) {
+      if (!leafPackages.has(root)) leafPackages.set(root, ver)
+      continue
+    }
+    if (!esmPackages.has(root))
+      esmPackages.set(root, { v: ver, sub: new Set() })
+    if (subpath) esmPackages.get(root).sub.add(subpath)
   }
   console.log(
-    `[gen-imports] 原始 ESM: ${entries.size - esmSpecs.length},+esm: ${esmSpecs.length}`,
+    `[gen-imports] Tier2: ${esmPackages.size} 包,Tier3 叶子: ${leafPackages.size} 包,raw: ${rawPackages.size} 包`,
   )
 
   const date = new Date().toISOString().slice(0, 10)
+  const sortedEntries = (map) =>
+    [...map.entries()].toSorted(([a], [b]) => a.localeCompare(b))
   const body = [
     `// 自动生成:node scripts/gen-static-imports.mjs ${antdvVer}(${date}),勿手改`,
-    `// antdv-next@${antdvVer} 依赖树(共 ${entries.size} 个 specifier)的运行时可达裸导入枚举:`,
-    `//   - 来源:从 genImportMap 暴露的 antdv-next 入口沿模块图 BFS,子路径经 exports map(import 条件)解析`,
-    `//   - 规则:有浏览器可用 ESM 构建的用原始文件 URL(经 import map 统一 vue 实例);`,
-    `//     无 ESM 构建的(ESM_IMPORTS)退化为 jsdelivr +esm 转换,CDN 切到 unpkg 时走 esm.sh`,
-    `// 重新生成:pnpm gen:imports(取当前 antdv-next latest);CI 校验:pnpm verify:imports`,
-    `export const STATIC_IMPORTS: Record<string, string> = {`,
-    ...[...entries.keys()].toSorted().map((spec) => {
-      const { path } = entries.get(spec)
-      return `  '${spec}': '${path}',`
+    `// antdv-next@${antdvVer} 依赖树的 esm.sh 托管清单(从 genImportMap 暴露的入口沿模块图 BFS 得出):`,
+    `//   - 版本号仅作回退值;运行时按所选 antdv-next 版本重新解析直接依赖并覆盖(resolveAntdvDeps)`,
+    `//   - 重新生成:pnpm gen:imports(取当前 antdv-next latest);CI 校验:pnpm verify:imports`,
+    `//   - legacy 回退模式(?resolver=legacy)用的是已冻结的 static-imports.ts,与本文件无关`,
+    ``,
+    `/** Tier2:经裸导入引用共享单例(vue/@antdv-next/cssinjs/antdv-next)的包,`,
+    ` *  由 esm.sh ?external= 服务;sub 为需显式登记的公开/深子路径(根条目恒有) */`,
+    `export const ESM_PACKAGES: Record<string, { v: string; sub?: string[] }> = {`,
+    ...sortedEntries(esmPackages).map(([pkg, { v, sub }]) => {
+      const subs = [...sub].toSorted()
+      return subs.length
+        ? `  '${pkg}': { v: '${v}', sub: [${subs.map((s) => `'${s}'`).join(', ')}] },`
+        : `  '${pkg}': { v: '${v}' },`
     }),
     `}`,
     ``,
-    `/** 需要 jsdelivr +esm 转换的 specifier(unpkg 不支持,CDN 切到 unpkg 时从 map 跳过) */`,
-    `export const ESM_IMPORTS: string[] = [`,
-    ...esmSpecs.toSorted().map((spec) => `  '${spec}',`),
-    `]`,
+    `/** Tier3:不引用共享单例的叶子包,import map 登记根 + 尾斜杠前缀 key,`,
+    ` *  任意子路径拼写(含 .js 后缀漂移)由 esm.sh 运行时解析 */`,
+    `export const LEAF_PACKAGES: Record<string, string> = {`,
+    ...sortedEntries(leafPackages).map(([pkg, v]) => `  '${pkg}': '${v}',`),
+    `}`,
+    ``,
+    `/** Tier1 补充:raw dist 单文件 bundle(esm.sh 会走 exports 主入口逐文件请求,不可搬) */`,
+    `export const RAW_PACKAGES: Record<string, { v: string; path: string }> = {`,
+    ...sortedEntries(rawPackages).map(
+      ([pkg, { v, path }]) => `  '${pkg}': { v: '${v}', path: '${path}' },`,
+    ),
+    `}`,
     ``,
   ].join('\n')
 
@@ -461,44 +491,53 @@ async function generate() {
     const toValue = (src) => {
       const js = src
         .replaceAll(/^\/\/.*$/gm, '')
+        .replaceAll(/\/\*\*[\s\S]*?\*\//g, '')
         .replaceAll(/^export /gm, '')
-        .replaceAll(': Record<string, string>', '')
-        .replaceAll(': string[]', '')
-      return new Function(`${js}; return { STATIC_IMPORTS, ESM_IMPORTS }`)()
+        .replaceAll(/: Record<string, [^\n=]+>/g, '')
+      return new Function(
+        `${js}; return { ESM_PACKAGES, LEAF_PACKAGES, RAW_PACKAGES }`,
+      )()
     }
+    // 版本号由运行时按所选版本解析(resolveAntdvDeps),清单版本仅作回退值;
+    // 对比时剥掉版本,只校验结构(包集合/子路径集合/raw 路径)。
+    const stripVersions = (value) =>
+      JSON.stringify({
+        esm: Object.fromEntries(
+          Object.entries(value.ESM_PACKAGES).map(([pkg, info]) => [
+            pkg,
+            [...(info.sub ?? [])].toSorted(),
+          ]),
+        ),
+        leaf: Object.keys(value.LEAF_PACKAGES).toSorted(),
+        raw: Object.fromEntries(
+          Object.entries(value.RAW_PACKAGES).map(([pkg, info]) => [
+            pkg,
+            info.path,
+          ]),
+        ),
+      })
     const diskValue = toValue(disk)
     const bodyValue = toValue(body)
-    // 版本号由运行时按所选版本解析(resolveAntdvDeps),生成树版本仅作回退值;
-    // 对比时剥掉路径值里的 @version,只校验结构(specifier 集合/路径/+esm 判定)。
-    const stripVersions = (imports) =>
-      Object.fromEntries(
-        Object.entries(imports).map(([spec, path]) => [
-          spec,
-          path.replace(/^\/((?:@[^/]+\/)?[^@/]+)@[^/]+(\/.*)?$/, '/$1$2'),
-        ]),
-      )
-    const diskStruct = JSON.stringify({
-      imports: stripVersions(diskValue.STATIC_IMPORTS),
-      esm: diskValue.ESM_IMPORTS,
-    })
-    const bodyStruct = JSON.stringify({
-      imports: stripVersions(bodyValue.STATIC_IMPORTS),
-      esm: bodyValue.ESM_IMPORTS,
-    })
-    if (diskStruct === bodyStruct) {
-      const drifted = Object.keys(diskValue.STATIC_IMPORTS).filter(
-        (spec) =>
-          diskValue.STATIC_IMPORTS[spec] !== bodyValue.STATIC_IMPORTS[spec],
-      )
+    if (stripVersions(diskValue) === stripVersions(bodyValue)) {
+      const drifted = [
+        ...Object.entries(bodyValue.ESM_PACKAGES).filter(
+          ([pkg, info]) => diskValue.ESM_PACKAGES[pkg]?.v !== info.v,
+        ),
+        ...Object.entries(bodyValue.LEAF_PACKAGES).filter(
+          ([pkg, v]) => diskValue.LEAF_PACKAGES[pkg] !== v,
+        ),
+      ]
       if (drifted.length) {
         console.log(
-          `[gen-imports] OK:结构与 antdv-next@${antdvVer} 一致;${drifted.length} 个条目版本漂移` +
+          `[gen-imports] OK:结构与 antdv-next@${antdvVer} 一致;${drifted.length} 个包版本漂移` +
             `(运行时按所选版本解析,如需刷新回退值请运行 pnpm gen:imports):`,
         )
-        for (const spec of drifted.slice(0, 12))
-          console.log(
-            `[gen-imports]   ${spec}: ${diskValue.STATIC_IMPORTS[spec]} -> ${bodyValue.STATIC_IMPORTS[spec]}`,
-          )
+        for (const [pkg, info] of drifted.slice(0, 12)) {
+          const to = typeof info === 'string' ? info : info.v
+          const from =
+            diskValue.ESM_PACKAGES[pkg]?.v ?? diskValue.LEAF_PACKAGES[pkg]
+          console.log(`[gen-imports]   ${pkg}: ${from} -> ${to}`)
+        }
       } else {
         console.log(
           `[gen-imports] OK:${OUT_FILE} 与 antdv-next@${antdvVer} 依赖树结构一致`,
@@ -507,7 +546,7 @@ async function generate() {
       return 0
     }
     console.error(
-      `[gen-imports] FAIL:${OUT_FILE} 结构过期(specifier/路径/+esm 判定变化),请运行 pnpm gen:imports 重新生成`,
+      `[gen-imports] FAIL:${OUT_FILE} 结构过期(包/子路径集合变化),请运行 pnpm gen:imports 重新生成`,
     )
     return 1
   }

@@ -12,7 +12,10 @@ import {
   genCdnLink,
   genCompilerSfcLink,
   genImportMap,
+  getManagedImportKeys,
   resolveAntdvDeps,
+  resolveDistTag,
+  resolver,
   resolveXDeps,
   sanitizeTsVersion,
 } from '@/utils/dependency'
@@ -112,19 +115,51 @@ export const useStore = (initial: Initial) => {
     () => featureFlags.x,
     (v) => (userOptions.xEnabled = v),
   )
-  // 按所选 antdv-next 版本解析其直接依赖的精确版本,覆盖静态树快照;
-  // 解析期间(或失败时)保持静态树,import map 不闪断
+  // URL 构建统一使用精确版本:jsdelivr 系 CDN 对 @latest 按路径独立缓存,
+  // 会混发不同年代文件(实测 jsdmirror 的 antdv-next@latest 部分路径还是旧版,
+  // 直接造成 named export 缺失)。latest 等 tag 先经 resolveDistTag 解析,
+  // 解析期间(或失败时)回退原 tag;版本选择器 UI 仍显示原始 tag
+  const exactVersions = reactive({
+    vue: versions.vue,
+    antdvNext: versions.antdvNext,
+    pro: versions.pro,
+    x: versions.x,
+  })
+  let exactSeq = 0
+  watch(
+    () => [versions.vue, versions.antdvNext, versions.pro, versions.x],
+    async ([vue, antdvNext, pro, x]) => {
+      const seq = ++exactSeq
+      const [ev, ea, ep, ex] = await Promise.all([
+        resolveDistTag('vue', vue),
+        resolveDistTag('antdv-next', antdvNext),
+        resolveDistTag('@antdv-next/pro', pro),
+        resolveDistTag('@antdv-next/x', x),
+      ])
+      if (seq !== exactSeq) return // 期间又切换过,丢弃过期结果
+      exactVersions.vue = ev
+      exactVersions.antdvNext = ea
+      exactVersions.pro = ep
+      exactVersions.x = ex
+    },
+    { immediate: true },
+  )
+  // 按所选 antdv-next 版本解析其直接依赖的精确版本,覆盖清单回退版本;
+  // 解析期间(或失败时)保持清单版本,import map 不闪断。
+  // resolver 切换后按新模式重新解析(候选包集与探测规则随模式不同)
   const resolvedDeps = shallowRef<Record<string, string>>({})
   const refreshDeps = useDebounceFn(async () => {
-    resolvedDeps.value = await resolveAntdvDeps(versions.antdvNext)
+    resolvedDeps.value = await resolveAntdvDeps(exactVersions.antdvNext)
   }, 300)
-  watch(() => versions.antdvNext, refreshDeps, { immediate: true })
+  watch([() => exactVersions.antdvNext, resolver], refreshDeps, {
+    immediate: true,
+  })
   // x 的 mermaid/prosemirror/shiki 直接依赖同理随所选 x 版本解析
   const resolvedXDeps = shallowRef<Record<string, string>>({})
   const refreshXDeps = useDebounceFn(async () => {
-    resolvedXDeps.value = await resolveXDeps(versions.x)
+    resolvedXDeps.value = await resolveXDeps(exactVersions.x)
   }, 300)
-  watch(() => versions.x, refreshXDeps, { immediate: true })
+  watch(() => exactVersions.x, refreshXDeps, { immediate: true })
   const hideFile = !IS_DEV && !userOptions.showHidden
 
   if (pr) useWorker(pr)
@@ -133,8 +168,10 @@ export const useStore = (initial: Initial) => {
     let importMap = genImportMap(
       {
         ...versions,
-        pro: pr ? undefined : featureFlags.pro ? versions.pro : undefined,
-        x: pr ? undefined : featureFlags.x ? versions.x : undefined,
+        vue: exactVersions.vue,
+        antdvNext: exactVersions.antdvNext,
+        pro: pr ? undefined : featureFlags.pro ? exactVersions.pro : undefined,
+        x: pr ? undefined : featureFlags.x ? exactVersions.x : undefined,
       },
       resolvedDeps.value,
       resolvedXDeps.value,
@@ -183,21 +220,33 @@ export const useStore = (initial: Initial) => {
   })
 
   watch(
-    () => [versions.antdvNext, versions.x, featureFlags.x, featureFlags.pro],
+    () => [
+      exactVersions.antdvNext,
+      exactVersions.x,
+      exactVersions.pro,
+      featureFlags.x,
+      featureFlags.pro,
+    ],
     () => {
       store.files[ANTDV_NEXT_FILE].code = generateAntdvNextCode(
-        versions.antdvNext,
+        exactVersions.antdvNext,
         userOptions.styleSource,
-        pr ? undefined : featureFlags.x ? versions.x : undefined,
-        pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+        pr ? undefined : featureFlags.x ? exactVersions.x : undefined,
+        pr ? undefined : featureFlags.pro ? exactVersions.pro : undefined,
       ).trim()
       originalCompileFile(store, store.files[ANTDV_NEXT_FILE]).then(
         (errs) => (store.errors = errs),
       )
     },
   )
-  // 记录生效中的 builtin map;首次变更即可对比移除消失的托管键
-  let prevBuiltinImportMap: ImportMap = builtinImportMap.value
+  // 记录生效中的 builtin map;首次变更即可对比移除消失的托管键。
+  // 初值取两模式托管 key 并集:跨模式分享链接(resolver 切换前序列化)里
+  // 残留的旧模式 key 会在 resolveAntdvDeps 完成引发的首次变更时一并清掉
+  let prevBuiltinImportMap: ImportMap = {
+    imports: Object.fromEntries(
+      [...getManagedImportKeys()].map((key) => [key, '']),
+    ),
+  }
   watch(
     builtinImportMap,
     (newBuiltinImportMap) => {
@@ -279,10 +328,10 @@ export const useStore = (initial: Initial) => {
       files[ANTDV_NEXT_FILE] = new File(
         ANTDV_NEXT_FILE,
         generateAntdvNextCode(
-          versions.antdvNext,
+          exactVersions.antdvNext,
           userOptions.styleSource,
-          pr ? undefined : featureFlags.x ? versions.x : undefined,
-          pr ? undefined : featureFlags.pro ? versions.pro : undefined,
+          pr ? undefined : featureFlags.x ? exactVersions.x : undefined,
+          pr ? undefined : featureFlags.pro ? exactVersions.pro : undefined,
         ),
       )
     }
@@ -292,9 +341,9 @@ export const useStore = (initial: Initial) => {
     return files
   }
   async function setVueVersion(version: string) {
-    store.compiler = await import(
-      /* @vite-ignore */ genCompilerSfcLink(version)
-    )
+    // compiler-sfc 的 URL 也用精确版本,避免 CDN 对 @latest 混发新旧文件
+    const exact = await resolveDistTag('vue', version)
+    store.compiler = await import(/* @vite-ignore */ genCompilerSfcLink(exact))
     versions.vue = version
   }
   async function setVersion(key: VersionKey, version: string) {

@@ -7,6 +7,7 @@ import {
   getSupportedVueVersions,
   getSupportedXVersions,
   isBlockedTsVersion,
+  resolver,
 } from '@/utils/dependency'
 import type { Store, VersionKey } from '@/composables/store'
 import type { Ref } from 'vue'
@@ -16,12 +17,20 @@ const props = defineProps<{
 }>()
 const open = defineModel<boolean>('open', { default: false })
 
+// 与 dependency.ts 的 CDN_HOST 映射双维护,新增 CDN 需两边同步
 const cdnOptions = [
   { label: 'jsDelivr', value: 'jsdelivr' },
   { label: 'jsDelivr Fastly', value: 'jsdelivr-fastly' },
   { label: 'JSDMirror (国内镜像)', value: 'jsdelivr-jsdmirror' },
   { label: 'Gcore', value: 'jsdelivr-gcore' },
   { label: 'unpkg', value: 'unpkg' },
+]
+
+// 依赖图解析器(见 dependency.ts resolver 说明):esm.sh 托管依赖图为默认;
+// legacy 是 esm.sh 不可达时的逃生舱(jsdelivr 全量枚举,行为同重构前)
+const resolverOptions = [
+  { label: 'esm.sh (默认)', value: 'esmsh' },
+  { label: 'legacy (jsDelivr 枚举)', value: 'legacy' },
 ]
 
 interface Version {
@@ -89,6 +98,10 @@ async function setVersion(key: VersionKey, v: string) {
     <a-form layout="vertical">
       <a-form-item label="CDN">
         <a-select v-model:value="cdn" :options="cdnOptions" />
+      </a-form-item>
+
+      <a-form-item label="Resolver">
+        <a-select v-model:value="resolver" :options="resolverOptions" />
       </a-form-item>
 
       <a-divider plain>Versions</a-divider>
