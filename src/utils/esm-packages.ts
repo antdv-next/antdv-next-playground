@@ -1,5 +1,5 @@
-// 自动生成:node scripts/gen-static-imports.mjs 1.5.6(2026-09-26),勿手改
-// antdv-next@1.5.6 依赖树的 esm.sh 托管清单(从 genImportMap 暴露的入口沿模块图 BFS 得出):
+// 自动生成:node scripts/gen-static-imports.mjs 1.6.0(2026-10-06),勿手改
+// antdv-next@1.6.0 依赖树的 esm.sh 托管清单(从 genImportMap 暴露的入口沿模块图 BFS 得出):
 //   - 版本号仅作回退值;运行时按所选 antdv-next 版本重新解析直接依赖并覆盖(resolveAntdvDeps)
 //   - 重新生成:pnpm gen:imports(取当前 antdv-next latest);CI 校验:pnpm verify:imports
 //   - legacy 回退模式(?resolver=legacy)用的是已冻结的 static-imports.ts,与本文件无关
@@ -7,7 +7,7 @@
 /** Tier2:经裸导入引用共享单例(vue/@antdv-next/cssinjs/antdv-next)的包,
  *  由 esm.sh ?external= 服务;sub 为需显式登记的公开/深子路径(根条目恒有) */
 export const ESM_PACKAGES: Record<string, { v: string; sub?: string[] }> = {
-  '@antdv-next/cssinjs': { v: '1.0.7', sub: ['cssinjs-utils'] },
+  '@antdv-next/cssinjs': { v: '1.1.0', sub: ['cssinjs-utils'] },
   '@v-c/cascader': { v: '1.1.6' },
   '@v-c/checkbox': { v: '1.0.2' },
   '@v-c/collapse': { v: '1.0.2' },
@@ -20,34 +20,34 @@ export const ESM_PACKAGES: Record<string, { v: string; sub?: string[] }> = {
   '@v-c/input-number': { v: '1.1.1' },
   '@v-c/listy': { v: '1.2.0' },
   '@v-c/mentions': { v: '1.2.3' },
-  '@v-c/menu': { v: '1.4.1' },
+  '@v-c/menu': { v: '1.4.2' },
   '@v-c/mutate-observer': { v: '1.0.3' },
-  '@v-c/notification': { v: '2.0.4' },
+  '@v-c/notification': { v: '2.0.5' },
   '@v-c/overflow': { v: '1.1.2' },
   '@v-c/pagination': { v: '1.1.2', sub: ['locale/en_US', 'locale/zh_CN'] },
-  '@v-c/picker': { v: '1.5.0', sub: ['generate/dayjs', 'locale/en_US'] },
+  '@v-c/picker': { v: '1.5.2', sub: ['generate/dayjs', 'locale/en_US'] },
   '@v-c/portal': { v: '1.0.8' },
   '@v-c/progress': { v: '1.0.3' },
   '@v-c/qrcode': { v: '1.0.1' },
   '@v-c/rate': { v: '1.0.1' },
   '@v-c/resize-observer': { v: '1.1.3' },
   '@v-c/segmented': { v: '1.0.6' },
-  '@v-c/select': { v: '1.2.7' },
+  '@v-c/select': { v: '1.2.8' },
   '@v-c/slick': { v: '1.0.2' },
   '@v-c/slider': { v: '1.1.4' },
   '@v-c/steps': { v: '1.0.3', sub: ['dist/UnstableContext.js'] },
   '@v-c/switch': { v: '1.0.1' },
-  '@v-c/table': { v: '1.3.3' },
+  '@v-c/table': { v: '1.3.4' },
   '@v-c/tabs': { v: '1.4.2' },
   '@v-c/textarea': { v: '1.1.1' },
-  '@v-c/tooltip': { v: '1.1.3' },
+  '@v-c/tooltip': { v: '1.1.4' },
   '@v-c/tour': { v: '1.1.2' },
   '@v-c/tree': { v: '1.2.3' },
-  '@v-c/tree-select': { v: '1.1.2' },
-  '@v-c/trigger': { v: '1.1.5' },
+  '@v-c/tree-select': { v: '1.1.3' },
+  '@v-c/trigger': { v: '1.1.6' },
   '@v-c/upload': { v: '1.1.0' },
   '@v-c/util': {
-    v: '1.3.1',
+    v: '1.3.2',
     sub: [
       'dist/Children/isFragment',
       'dist/Children/toArray',
@@ -74,6 +74,7 @@ export const ESM_PACKAGES: Record<string, { v: string; sub?: string[] }> = {
       'dist/isMobile',
       'dist/omit',
       'dist/pickAttrs',
+      'dist/pickDefined',
       'dist/props-util',
       'dist/raf',
       'dist/utils/get',
