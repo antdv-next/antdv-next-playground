@@ -1,7 +1,9 @@
 // 自动生成:node scripts/gen-static-imports.mjs 1.5.3(2026-09-01),勿手改
 // ⚠️ 已冻结:自 resolver 默认切到 esm.sh 后,本文件仅供 ?resolver=legacy 回退模式使用,
 //    不再由 gen-static-imports.mjs 重新生成(生成器改为输出 esm-packages.ts)。
-//    手工补丁:补充 dayjs/plugin/*.js 带后缀拼写(@v-c/picker@1.5.0 起),legacy 模式同样免疫。
+//    手工补丁:补充 dayjs/plugin/*.js 带后缀拼写(@v-c/picker@1.5.0 起),legacy 模式同样免疫;
+//    补充 @v-c/util/dist/pickDefined(antdv-next@1.6.0 起,@v-c/select@1.2.8 等新增的深路径导入)。
+//    路径里的版本是快照回退值,运行时仍由 resolveAntdvDeps 覆盖为所选 antdv-next 解析出的版本。
 // antdv-next@1.5.3 依赖树(共 104 个 specifier)的运行时可达裸导入枚举:
 //   - 来源:从 genImportMap 暴露的 antdv-next 入口沿模块图 BFS,子路径经 exports map(import 条件)解析
 //   - 规则:有浏览器可用 ESM 构建的用原始文件 URL(经 import map 统一 vue 实例);
@@ -96,6 +98,7 @@ export const STATIC_IMPORTS: Record<string, string> = {
   '@v-c/util/dist/isMobile': '/@v-c/util@1.1.0/dist/isMobile.js',
   '@v-c/util/dist/omit': '/@v-c/util@1.1.0/dist/omit.js',
   '@v-c/util/dist/pickAttrs': '/@v-c/util@1.1.0/dist/pickAttrs.js',
+  '@v-c/util/dist/pickDefined': '/@v-c/util@1.1.0/dist/pickDefined.js',
   '@v-c/util/dist/props-util': '/@v-c/util@1.1.0/dist/props-util/index.js',
   '@v-c/util/dist/raf': '/@v-c/util@1.1.0/dist/raf.js',
   '@v-c/util/dist/utils/get': '/@v-c/util@1.1.0/dist/utils/get.js',
