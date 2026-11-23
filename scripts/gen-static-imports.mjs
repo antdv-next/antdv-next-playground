@@ -64,6 +64,30 @@ const LEAF_PACKAGE_SET = new Set([
   'throttle-debounce',
 ])
 
+/**
+ * 求值现有清单(剥掉注释/export/类型标注)。check 模式对比与生成模式的
+ * 子路径并集都依赖它,解析失败视为无历史清单。
+ */
+const evaluateManifest = (src) => {
+  const js = src
+    .replaceAll(/^\/\/.*$/gm, '')
+    .replaceAll(/\/\*\*[\s\S]*?\*\//g, '')
+    .replaceAll(/^export /gm, '')
+    .replaceAll(/: Record<string, [^\n=]+>/g, '')
+  return new Function(
+    `${js}; return { ESM_PACKAGES, LEAF_PACKAGES, RAW_PACKAGES }`,
+  )()
+}
+const readPreviousManifest = () => {
+  if (!existsSync(OUT_FILE)) return null
+  try {
+    return evaluateManifest(readFileSync(OUT_FILE, 'utf8'))
+  } catch {
+    warn(`${OUT_FILE} 解析失败,本次不做子路径并集`)
+    return null
+  }
+}
+
 // 与 genImportMap 中 antdv-next 子路径保持一致的运行时入口(可达性 BFS 起点)
 const ANTDV_SEEDS = [
   'dist/index.js',
@@ -445,6 +469,26 @@ async function generate() {
       esmPackages.set(root, { v: ver, sub: new Set() })
     if (subpath) esmPackages.get(root).sub.add(subpath)
   }
+
+  // 版本选择器支持回溯旧版 antdv-next,而清单按 latest 生成:旧版可能引用
+  // 新版入口图已不可达的深子路径(实测 @v-c/pagination/locale/zh_CN:
+  // 1.6.x 分页组件硬编码导入,1.8.x 已移到独立 locale 文件)。
+  // sub 集合因此只增不减:并入盘上旧清单的条目(根包仍在新依赖树内时),
+  // 避免重新生成后切换旧版出现 import map 解析失败。
+  const previous = readPreviousManifest()
+  let carried = 0
+  for (const [pkg, info] of Object.entries(previous?.ESM_PACKAGES ?? {})) {
+    if (!pkgVersions.has(pkg)) continue
+    if (!esmPackages.has(pkg))
+      esmPackages.set(pkg, { v: pkgVersions.get(pkg), sub: new Set() })
+    const target = esmPackages.get(pkg)
+    for (const sub of info.sub ?? []) {
+      if (target.sub.has(sub)) continue
+      target.sub.add(sub)
+      carried++
+    }
+  }
+  if (carried) console.log(`[gen-imports] 并入旧清单子路径: ${carried} 条`)
   console.log(
     `[gen-imports] Tier2: ${esmPackages.size} 包,Tier3 叶子: ${leafPackages.size} 包,raw: ${rawPackages.size} 包`,
   )
@@ -457,6 +501,7 @@ async function generate() {
     `// antdv-next@${antdvVer} 依赖树的 esm.sh 托管清单(从 genImportMap 暴露的入口沿模块图 BFS 得出):`,
     `//   - 版本号仅作回退值;运行时按所选 antdv-next 版本重新解析直接依赖并覆盖(resolveAntdvDeps)`,
     `//   - 重新生成:pnpm gen:imports(取当前 antdv-next latest);CI 校验:pnpm verify:imports`,
+    `//   - sub 集合跨版本只增不减:重新生成会并入旧清单已有子路径,保证切换旧版 antdv-next 不回归`,
     `//   - legacy 回退模式(?resolver=legacy)用的是已冻结的 static-imports.ts,与本文件无关`,
     ``,
     `/** Tier2:经裸导入引用共享单例(vue/@antdv-next/cssinjs/antdv-next)的包,`,
@@ -487,17 +532,6 @@ async function generate() {
 
   if (checkMode) {
     const disk = readFileSync(OUT_FILE, 'utf8')
-    // 值与格式无关比较:剥掉注释/export/类型标注后求值
-    const toValue = (src) => {
-      const js = src
-        .replaceAll(/^\/\/.*$/gm, '')
-        .replaceAll(/\/\*\*[\s\S]*?\*\//g, '')
-        .replaceAll(/^export /gm, '')
-        .replaceAll(/: Record<string, [^\n=]+>/g, '')
-      return new Function(
-        `${js}; return { ESM_PACKAGES, LEAF_PACKAGES, RAW_PACKAGES }`,
-      )()
-    }
     // 版本号由运行时按所选版本解析(resolveAntdvDeps),清单版本仅作回退值;
     // 对比时剥掉版本,只校验结构(包集合/子路径集合/raw 路径)。
     const stripVersions = (value) =>
@@ -516,8 +550,8 @@ async function generate() {
           ]),
         ),
       })
-    const diskValue = toValue(disk)
-    const bodyValue = toValue(body)
+    const diskValue = evaluateManifest(disk)
+    const bodyValue = evaluateManifest(body)
     if (stripVersions(diskValue) === stripVersions(bodyValue)) {
       const drifted = [
         ...Object.entries(bodyValue.ESM_PACKAGES).filter(
